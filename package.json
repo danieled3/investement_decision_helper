@@ -1,0 +1,13 @@
+{
+  "name": "investement-decision-helper",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static web app that projects a split risky/safer euro portfolio against every scenario in market history since 1900.",
+  "scripts": {
+    "test": "node tests/verify.mjs",
+    "calibrate": "node tests/calibrate_blocks.mjs",
+    "serve": "python3 -m http.server 8123"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,15 @@
+# Nothing here is built or installed — this is a static site with no toolchain.
+# These are just the things a machine leaves behind.
+
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+.idea/
+.vscode/
