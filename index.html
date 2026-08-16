@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Investment Decision Helper — how much could my money become?</title>
+<meta name="description" content="Put in what you would invest each month in a world share ETF and in euro government bonds, and see the full range of outcomes over the next ten years, measured against every scenario since 1900.">
+<meta name="color-scheme" content="light dark">
+<!-- Inline favicon: a small rising line, so the page needs no extra request. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M6 24 L13 17 L19 20 L26 9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<a class="skip" href="#results">Skip to the results</a>
+<div class="wrap">
+
+<header class="top">
+  <div>
+    <h1>How much could my money become?</h1>
+    <p class="lede">
+      Split your savings between a <strong>risky</strong> part (shares from around the
+      world) and a <strong>safer</strong> part (euro government bonds), and see the
+      whole range of things that could happen — not just one hopeful number.
+    </p>
+    <p class="sub">
+      Every outcome on this page is built from real market history going back to
+      <span id="dsRange">1900</span>. Nothing is invented, and nothing is a promise.
+    </p>
+  </div>
+  <button class="ghost no-print" id="themeToggle" type="button">Dark mode</button>
+</header>
+
+<!-- ============================================================ THE PLAN -->
+<section class="card no-print" aria-labelledby="planTitle">
+  <h2 id="planTitle">1 · Your plan</h2>
+  <p class="sub">Change any number and everything below updates.</p>
+
+  <div class="sleeves">
+    <div class="sleeve">
+      <div class="sleeve-head">
+        <span class="sleeve-title">Risky part — a world share ETF</span>
+      </div>
+      <p class="sleeve-note">
+        One fund that owns a slice of thousands of companies across the whole
+        developed world. Grows the most over long periods, but can fall hard and
+        stay down for years.
+      </p>
+      <div class="field">
+        <label for="initialRisky">Amount you put in today</label>
+        <div class="euro-input"><span>€</span>
+          <input id="initialRisky" type="number" min="0" step="100" value="10000" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label for="monthlyRisky">Amount you add every month</label>
+        <div class="euro-input"><span>€</span>
+          <input id="monthlyRisky" type="number" min="0" step="25" value="400" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+
+    <div class="sleeve">
+      <div class="sleeve-head">
+        <span class="sleeve-title">Safer part — euro government bonds</span>
+      </div>
+      <p class="sleeve-note">
+        You lend money to euro-area governments and they pay you interest. Much
+        steadier than shares in normal times — but it is not risk-free, as 2022
+        showed (<span id="ds2022bd">−25.1%</span> after inflation, in one year).
+      </p>
+      <div class="field">
+        <label for="initialSafe">Amount you put in today</label>
+        <div class="euro-input"><span>€</span>
+          <input id="initialSafe" type="number" min="0" step="100" value="5000" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label for="monthlySafe">Amount you add every month</label>
+        <div class="euro-input"><span>€</span>
+          <input id="monthlySafe" type="number" min="0" step="25" value="100" inputmode="decimal">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field" style="margin:0">
+      <label for="years">For how long?</label>
+      <select id="years">
+        <option value="5">5 years</option>
+        <option value="10" selected>10 years</option>
+        <option value="15">15 years</option>
+        <option value="20">20 years</option>
+        <option value="25">25 years</option>
+        <option value="30">30 years</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label id="viewLabel">Show amounts in</label>
+      <div class="toggle-group" role="group" aria-labelledby="viewLabel">
+        <button id="viewReal" type="button" aria-pressed="true">Today's euros</button>
+        <button id="viewNominal" type="button" aria-pressed="false">Euros of the day</button>
+      </div>
+    </div>
+    <div class="field" id="inflationField" style="margin:0" hidden>
+      <label for="inflation">Assumed inflation, % per year</label>
+      <input id="inflation" type="number" min="-5" max="20" step="0.1" value="2" inputmode="decimal">
+    </div>
+  </div>
+
+  <!-- Tax. The country changes only the tax; the two funds themselves are the
+       same wherever you live, so nothing else on the page depends on it. -->
+  <div class="row">
+    <div class="field" style="margin:0">
+      <label for="taxCountry">Where you pay tax</label>
+      <select id="taxCountry">
+        <option value="it" selected>Italy — take the Italian tax off</option>
+        <option value="gb">United Kingdom — take the UK tax off</option>
+        <option value="none">Nowhere — show the figures before tax</option>
+      </select>
+    </div>
+    <div class="field" id="taxFundField" style="margin:0">
+      <label for="taxFund">What your funds do with the income</label>
+      <select id="taxFund">
+        <option value="acc" selected>Reinvest it (accumulating)</option>
+        <option value="dist">Pay it out to me (distributing)</option>
+      </select>
+    </div>
+    <div class="field" id="taxWrapperField" style="margin:0" hidden>
+      <label for="taxWrapper">Type of account</label>
+      <select id="taxWrapper">
+        <option value="taxable" selected>An ordinary dealing account</option>
+        <option value="isa">A Stocks &amp; Shares ISA</option>
+      </select>
+    </div>
+    <div class="field" id="taxBandField" style="margin:0" hidden>
+      <label for="taxBand">Your income tax band</label>
+      <select id="taxBand">
+        <option value="basic" selected>Basic rate — income under £50,270</option>
+        <option value="higher">Higher rate — £50,270 to £125,140</option>
+        <option value="additional">Additional rate — over £125,140</option>
+      </select>
+    </div>
+  </div>
+  <p class="sub" id="taxSummary" style="margin:8px 0 0"></p>
+
+  <p class="plan-summary" id="planSummary">
+    <span>You start with <b id="sumStart">€15 000</b></span>
+    <span>You add <b id="sumMonthly">€500</b> every month</span>
+    <span>Over <b id="sumHorizon">10 years</b> you pay in <b id="sumTotal">€75 000</b></span>
+  </p>
+  <p class="sub" style="margin:8px 0 0" id="allocNote"></p>
+
+  <details class="advanced">
+    <summary>Advanced settings — you can safely ignore all of these</summary>
+    <div class="row">
+      <div class="field" style="margin:0">
+        <label for="era">Which history to learn from</label>
+        <select id="era">
+          <option value="1900-2025" selected>1900–2025 — everything, wars included</option>
+          <option value="1950-2025">1950–2025 — post-war only</option>
+          <option value="1970-2025">1970–2025 — modern markets</option>
+          <option value="1990-2025">1990–2025 — recent only</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label for="terRisky">Yearly fee on the share ETF, %</label>
+        <input id="terRisky" type="number" min="0" max="5" step="0.01" value="0.2" inputmode="decimal">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="terSafe">Yearly fee on the bond ETF, %</label>
+        <input id="terSafe" type="number" min="0" max="5" step="0.01" value="0.1" inputmode="decimal">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="nPaths">Number of simulated journeys</label>
+        <select id="nPaths">
+          <option value="20000">20 000 — fastest</option>
+          <option value="100000" selected>100 000 — recommended</option>
+          <option value="200000">200 000 — slowest, steadiest tails</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label for="blockMean">Average length of a reused stretch, years</label>
+        <select id="blockMean">
+          <option value="1">1 — years shuffled independently</option>
+          <option value="3">3</option>
+          <option value="5" selected>5 — calibrated choice</option>
+          <option value="7">7</option>
+          <option value="10">10 — long regimes</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label for="seed">Random seed</label>
+        <input id="seed" type="number" min="1" step="1" value="20260816">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="intraYear">Within-year ups and downs</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:15px;color:var(--text-primary)">
+          <input id="intraYear" type="checkbox" checked style="width:auto">
+          Simulate month-by-month wobble
+        </label>
+      </div>
+    </div>
+    <h3 style="margin-bottom:2px">Tax assumptions</h3>
+    <p class="sub" style="margin:0 0 8px">
+      Only used when a country is selected above. The yields decide how much of the
+      return arrives as dividends and interest, which is the part some countries tax
+      every year.
+    </p>
+    <div class="row" style="margin-top:0">
+      <div class="field" style="margin:0">
+        <label for="equityYield">Dividend yield of the share ETF, % a year</label>
+        <input id="equityYield" type="number" min="0" max="10" step="0.1" value="1.8" inputmode="decimal">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="bondYield">Interest yield of the bond ETF, % a year</label>
+        <input id="bondYield" type="number" min="0" max="15" step="0.1" value="3" inputmode="decimal">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="wealthRate">Yearly tax on the balance itself, %</label>
+        <input id="wealthRate" type="number" min="0" max="3" step="0.01" value="0.2" inputmode="decimal">
+      </div>
+      <div class="field" style="margin:0">
+        <label for="gbpEur">Pounds per euro, for the UK allowances</label>
+        <input id="gbpEur" type="number" min="0.5" max="3" step="0.01" value="1.15" inputmode="decimal">
+      </div>
+    </div>
+    <p class="sub" style="margin-top:14px">
+      <button class="ghost" id="resetBtn" type="button">Reset everything to the defaults</button>
+    </p>
+  </details>
+</section>
+
+<!-- ========================================================= THE HEADLINE -->
+<section class="card" id="results" aria-labelledby="resultsTitle">
+  <h2 id="resultsTitle">2 · What you would most likely end up with</h2>
+  <p class="sub">
+    The middle outcome: half of all the histories we tested ended above this, half below.
+  </p>
+  <div class="hero-wrap">
+    <div class="hero" id="heroValue">—</div>
+    <div class="hero-label">in <span id="heroUnit">today's euros</span></div>
+    <span class="pill" id="taxPill">—</span>
+  </div>
+  <p class="sub" id="heroNote"></p>
+
+  <div class="tiles tiles-4-2">
+    <div class="tile" id="tileP1"><span class="k">Very unlucky — worst 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileP5"><span class="k">Unlucky — worst 5 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileP95"><span class="k">Lucky — best 5 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileP99"><span class="k">Very lucky — best 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tilePaidIn"><span class="k">Money you paid in</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileBelow"><span class="k">Chance of ending up behind</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+
+  <div class="callout">
+    <strong>How to read “worst 1 in 100”.</strong> Out of every hundred futures we
+    simulated, ninety-nine ended above that number and one ended below it. It is a
+    bad-but-plausible case, not the worst thing imaginable — a war, a currency
+    collapse or a new kind of crisis could do worse, and history contains all three.
+  </div>
+</section>
+
+<!-- ============================================================ THE CHART -->
+<section class="card" aria-labelledby="chartTitle">
+  <div class="chart-head">
+    <div>
+      <h2 id="chartTitle">3 · The whole range, year by year</h2>
+      <p class="sub" style="margin:0">
+        The thick line running up the middle is the middle outcome. The shaded areas
+        around it show how high and how low things could reasonably go.
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start" class="no-print">
+      <button class="ghost" id="toggleTable" type="button" aria-expanded="false">Show the numbers</button>
+    </div>
+  </div>
+
+  <div class="row no-print" style="margin-top:0;margin-bottom:14px">
+    <div class="field" style="margin:0">
+      <label>Bands to show</label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:14px">
+        <label style="display:flex;align-items:center;gap:6px"><input id="band99" type="checkbox" checked style="width:auto"> 99 in 100</label>
+        <label style="display:flex;align-items:center;gap:6px"><input id="band95" type="checkbox" checked style="width:auto"> 95 in 100</label>
+        <label style="display:flex;align-items:center;gap:6px"><input id="band50" type="checkbox" checked style="width:auto"> everyday half</label>
+      </div>
+    </div>
+    <div class="field" style="margin:0">
+      <label for="overlay">Also draw a real period from history</label>
+      <select id="overlay"><option value="worst">the worst one that really happened</option></select>
+    </div>
+  </div>
+
+  <div id="fanChart"></div>
+  <ul class="legend" id="fanLegend"></ul>
+  <div id="tableView" hidden></div>
+  <p class="status" id="status" style="margin-top:12px"></p>
+</section>
+
+<!-- ======================================================== THE BUMPY ROAD -->
+<section class="card" aria-labelledby="dipTitle">
+  <h2 id="dipTitle">4 · The bumpy road — how bad does it get <em>along the way</em>?</h2>
+  <p class="sub">
+    The end result is only half the story. What usually makes people sell at the
+    worst moment is what happens in between. These figures are the lowest and
+    highest your balance ever touched during the whole period, not just at the end.
+  </p>
+
+  <h3>The lowest your balance ever fell to</h3>
+  <div class="tiles">
+    <div class="tile" id="tileLow1"><span class="k">Lowest point — 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileLow5"><span class="k">Lowest point — 5 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileLowMed"><span class="k">Lowest point — typical</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+  <p class="sub" style="margin-top:10px" id="lowestExplain"></p>
+
+  <h3>The highest your balance ever reached</h3>
+  <div class="tiles">
+    <div class="tile" id="tileHigh50"><span class="k">Highest point — typical</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileHigh95"><span class="k">Highest point — 5 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileHigh99"><span class="k">Highest point — 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+  <p class="sub" style="margin-top:10px">
+    A high point that is far above the final value is a warning, not good news: it
+    means the money was there and then went away again.
+  </p>
+
+  <h3>The biggest fall from a peak</h3>
+  <div class="tiles">
+    <div class="tile" id="tileDD50"><span class="k">Biggest fall — typical</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileDD95"><span class="k">Biggest fall — 5 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileDD99"><span class="k">Biggest fall — 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+
+  <h3>How far underwater you could go</h3>
+  <div class="tiles">
+    <div class="tile" id="tileGap1"><span class="k">Worst gap below what you paid in — 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileGap50"><span class="k">Worst gap below what you paid in — typical</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+  <p class="sub" style="margin-top:10px">
+    This compares your balance with the plain total of the money you had handed
+    over by that month. Seeing less on your statement than you put in is the
+    single most common reason people abandon a plan — so it is worth knowing the
+    number in advance.
+  </p>
+</section>
+
+<!-- ================================================================== TAX -->
+<section class="card" id="taxSection" aria-labelledby="taxTitle">
+  <h2 id="taxTitle">5 · What the taxman takes</h2>
+  <p class="sub" id="taxIntro"></p>
+
+  <div class="tiles">
+    <div class="tile" id="tileTaxTotal"><span class="k">Tax you hand over in total</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileTaxYearly"><span class="k">Paid year by year, as you go</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileTaxExit"><span class="k">Paid at the end, when you sell</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileTaxShare"><span class="k">Share of your profit taken</span><span class="v">—</span><span class="n"></span></div>
+  </div>
+  <p class="sub" style="margin-top:10px">
+    Each of these is the middle value of its own ranking, so the two “when” figures
+    need not add up to the total exactly — the journey with the middle total bill is
+    not necessarily the one with the middle yearly bill.
+  </p>
+
+  <h3>What is being applied</h3>
+  <ul id="taxRules"></ul>
+
+  <div class="callout" id="taxCallout"></div>
+
+  <div class="callout warn">
+    <strong>This is a tax calculator, not a tax adviser.</strong> It uses the headline
+    rates for a straightforward private investor holding two ordinary UCITS ETFs, and
+    it cannot know your situation. Three real complications it deliberately ignores:
+    <ul style="margin:8px 0 0">
+      <li>
+        In Italy the reduced 12.5% rate applies to the government-bond part of the
+        return only if the fund actually holds white-list government bonds. A
+        <em>synthetic</em> bond ETF, which tracks the index through a swap instead of
+        owning the bonds, can lose that treatment and be taxed entirely at 26%.
+      </li>
+      <li>
+        In the UK the numbers here assume both funds have <em>UK reporting status</em>.
+        A fund without it is taxed on the whole gain as income at your marginal rate,
+        which is far worse than the capital-gains treatment shown.
+      </li>
+      <li>
+        Rates, bands and allowances change. These are the ones in force for the 2026
+        Italian year and the 2026/27 UK year, held constant for the whole period —
+        which no government has ever actually done.
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================================================== WHAT REALLY HAPPENED -->
+<section class="card" aria-labelledby="histTitle">
+  <h2 id="histTitle">6 · What actually happened, every single time</h2>
+  <p class="sub" id="histSummary"></p>
+  <div id="histChart"></div>
+  <p class="sub" style="margin-top:10px">
+    No randomness at all in this chart: it takes your exact plan and runs it
+    through each real historical period in turn, one starting every year. Each bar
+    counts how many of those real periods finished in that range. Hover a bar to
+    see which years they were.
+  </p>
+</section>
+
+<!-- ========================================================= HOW IT WORKS -->
+<section class="card prose" aria-labelledby="howTitle">
+  <h2 id="howTitle">7 · How this works, in plain language</h2>
+
+  <h3>The two things you are choosing between</h3>
+  <p>
+    <strong>A world share ETF</strong> is a single, cheap fund that buys a tiny piece
+    of thousands of companies in dozens of countries. You are not betting on one
+    company; you are betting that companies in general keep making money. Over long
+    stretches this has paid well — about
+    <b id="dsEquityCagr">+5%</b> a year above inflation since <span id="dsRange2">1900</span> —
+    but the ride is violent. Its worst single year in this dataset was
+    <b id="dsEquityWorstYear">2008</b> at <b id="dsEquityWorst">−40%</b>.
+  </p>
+  <p>
+    <strong>Euro government bonds</strong> means lending money to governments like
+    Germany, France, Italy and Spain, which pay you interest. In a normal year this
+    barely moves. But bonds are not a safe box: they lose value when interest rates
+    rise, and inflation quietly eats them. Over the whole period since
+    <span id="dsRange3">1900</span> euro-area government bonds returned
+    <b id="dsBondCagr">−0.9%</b> a year <em>after</em> inflation — the two world wars
+    destroyed bondholders twice. Their worst single year here was
+    <b id="dsBondWorstYear">1923</b> at <b id="dsBondWorst">−40%</b>.
+  </p>
+  <div class="callout">
+    <strong>So why hold bonds at all?</strong> Because they usually zig when shares
+    zag, which makes the journey calmer and makes you more likely to stay invested.
+    Notice what happens to the “biggest fall” numbers in section 4 when you move
+    money between the two boxes — that is the trade you are actually making.
+    But “usually” is doing real work in that sentence: in 2022 both fell together,
+    shares <b id="ds2022eq">−18%</b> and bonds <b id="ds2022bd2">−25%</b> after
+    inflation. The simulation keeps shares and bonds from the same year precisely so
+    that years like that stay possible.
+  </div>
+
+  <h3>“Today's euros” versus “euros of the day”</h3>
+  <p>
+    €100 in ten years will not buy what €100 buys now. There are two honest ways to
+    talk about this and the toggle at the top switches between them:
+  </p>
+  <ul>
+    <li>
+      <strong>Today's euros</strong> (the default) strips inflation out. If it says
+      €102 000, that means <em>as much shopping as €102 000 buys you today</em>. This
+      is the number that actually matters, and it is what the historical data
+      naturally gives us.
+    </li>
+    <li>
+      <strong>Euros of the day</strong> is the bigger, more flattering number you
+      would literally see printed on a statement in ten years. It is the same
+      outcome, just measured with a shrinking ruler.
+    </li>
+  </ul>
+  <p>
+    For the “euros of the day” view we do <em>not</em> guess inflation from history —
+    the 1923 German hyperinflation would make that meaningless. Instead you set a
+    single assumed inflation rate (2% by default, the European Central Bank's
+    target). In that view we also assume you raise your monthly payment with
+    inflation, so it keeps the same real value; that is why the “money you paid in”
+    line is higher there.
+  </p>
+
+  <h3>What the bands mean</h3>
+  <p>
+    We do not run one future, we run
+    <b>a hundred thousand</b> of them. Then we line up all hundred thousand results
+    for each month and read off the ranking:
+  </p>
+  <ul>
+    <li>the <strong>middle outcome</strong> is the one right in the centre — half above, half below;</li>
+    <li>the <strong>everyday half</strong> is the middle 50, the range you would call unremarkable;</li>
+    <li>the <strong>95 in 100</strong> band leaves out the luckiest 2½ and unluckiest 2½;</li>
+    <li>the <strong>99 in 100</strong> band leaves out only the most extreme half-percent at each end.</li>
+  </ul>
+  <p>
+    The middle outcome is deliberately used instead of the average. Averages get
+    dragged upwards by a handful of spectacular runs and end up describing a future
+    that most people will not get.
+  </p>
+
+  <h3>The five steps behind every number on this page</h3>
+  <ol>
+    <li>
+      <strong>Collect the real history.</strong> Annual after-inflation returns for
+      world shares and euro-area government bonds for
+      <b id="dsN2">126</b> years, <span id="dsRange4">1900–2025</span>.
+    </li>
+    <li>
+      <strong>Build one synthetic future.</strong> Pick a random year from history,
+      then keep following the years that actually came after it for a while, then
+      jump to another random year, and so on until the period is filled. Shares and
+      bonds are always taken from the <em>same</em> year, so real crises stay intact:
+      if 2008 comes up, you get 2008 for both.
+    </li>
+    <li>
+      <strong>Fill in the months.</strong> A calendar year that ends flat can still
+      have fallen 30% in the middle. Each year is broken into twelve monthly steps
+      that wander realistically but are pinned to add up to exactly that year's real
+      return. This is what makes the “lowest point” figures honest.
+    </li>
+    <li>
+      <strong>Run your actual plan through it.</strong> Your starting amounts, your
+      monthly payments added at each month's end, the yearly fund fees taken off —
+      and, if you picked a country, the tax taken off as and when it falls due.
+    </li>
+    <li>
+      <strong>Repeat a hundred thousand times</strong> and read off the ranking.
+    </li>
+  </ol>
+
+  <h3>How tax is handled</h3>
+  <p>
+    Pick a country at the top and every figure on this page becomes what you would
+    actually walk away with: the balance you could sell for, <em>after</em> settling
+    with the tax authority. Pick “nowhere” and you see the same plan before tax, which
+    is the honest way to see how much tax is really costing you.
+  </p>
+  <p>
+    The country changes <strong>nothing else</strong>. The two funds are the same wherever
+    you live — a world share ETF and a euro government bond ETF — so the returns, the
+    history and the resampling are identical. Only the tax differs.
+  </p>
+  <p>Money can be taken in three quite different ways, and they hurt differently:</p>
+  <ol>
+    <li>
+      <strong>A yearly charge on the whole balance.</strong> Italy has one: the
+      <em>imposta di bollo</em> (or IVAFE with a foreign broker), 0.20% a year of
+      whatever your holding is worth. You owe it in good years and bad — it is not a
+      tax on profit. The UK has nothing of the kind. Here it is charged in twelve
+      small monthly slices, which is close to how brokers really bill it.
+    </li>
+    <li>
+      <strong>A yearly tax on the income the funds earn.</strong> Shares pay dividends
+      and bonds pay coupons. In the UK that income is taxable in the year it arises
+      <em>even if the fund keeps it and reinvests it</em> — the “excess reportable
+      income” of a reporting fund. In Italy an accumulating ETF is not touched at all
+      until you sell, which is why the accumulating/distributing choice above matters
+      so much for an Italian investor. Income that has already been taxed is added to
+      your cost base, so it is never taxed twice.
+    </li>
+    <li>
+      <strong>A tax on the gain when you sell.</strong> Italy: 26% <em>imposta
+      sostitutiva</em>, cut to 12.5% on the part of the gain that comes from
+      white-list government bonds — so the bond part is taxed at roughly half the
+      rate of the share part. The UK: capital gains tax at 18% inside the basic-rate
+      band and 24% above it, with the first £3,000 of gain each year free.
+    </li>
+  </ol>
+  <p>
+    Every month the page shows the <em>liquidation value</em>: your balance minus the
+    tax that selling in that month would trigger. That is why tax makes the “lowest
+    point” and “biggest fall” figures in section 4 worse too — the tax bill is real
+    at every moment, not only at the end.
+  </p>
+  <p>
+    <strong>Two details that are easy to get wrong, and are right here.</strong> First,
+    tax is charged on the <em>nominal</em> gain: no country lets you deduct inflation.
+    So the higher inflation is, the larger a share of your <em>real</em> profit the tax
+    takes — switch the inflation assumption up and watch the tax bill grow even though
+    nothing real has changed. Second, Italy taxes ETF gains as
+    <em>redditi di capitale</em> but ETF losses as <em>redditi diversi</em>, two
+    separate buckets: a loss on your bond fund therefore <em>cannot</em> be set against
+    a gain on your share fund. In the UK it can. Try the two countries with a
+    bond-heavy plan in a bad decade and you will see the difference.
+  </p>
+  <p>
+    The tax is taken out of the pot. If in real life you would pay it from your current
+    account instead, the arithmetic is the same — your total wealth ends up identical,
+    the money just leaves from a different pocket.
+  </p>
+  <p>
+    One thing no single number can show: the tax paid early costs you more than its face
+    value, because that money can never compound again. That is why the drop in your
+    final total is always <em>bigger</em> than the tax you actually handed over.
+  </p>
+
+  <h3>Why not simply replay history?</h3>
+  <p>
+    We do — that is section 6, and it is the most trustworthy thing on the page. But
+    it cannot answer the question you asked. Between 1900 and 2025 there are only
+    117 ten-year stretches, and they overlap heavily: 1970–1979 and 1971–1980 share
+    nine of their ten years. That is really only about a dozen independent
+    experiments. You simply cannot measure a “1 in 100” event from a dozen samples.
+  </p>
+  <p>
+    The resampling in step 2 solves that by reassembling real history into new
+    orders. It reuses only things that really happened, but it can produce
+    combinations we happened not to live through — a 2008 arriving right after a
+    1973, for instance. That is the point: nothing says the next decade must be one
+    of the 117 we have already seen.
+  </p>
+
+  <h3>Why stretches of about five years?</h3>
+  <p>
+    If we shuffled single years independently, we would destroy something real:
+    bad periods clump. Bond returns in particular are strongly related from one year
+    to the next (a correlation of about <b>+0.51</b> at one year's distance in this
+    data, where anything below about 0.18 would be indistinguishable from chance),
+    because interest-rate and inflation regimes last a long time. Shuffling years
+    apart would quietly make the world look safer than it is.
+  </p>
+  <p>
+    So we keep stretches with an average length of five years. Five is not a taste
+    choice — it is the length at which the spread of simulated ten-year outcomes
+    matches the spread actually seen in the real overlapping ten-year windows, to
+    within about 1.6%. You can change it under advanced settings and watch the tails
+    widen or narrow.
+  </p>
+
+  <h3>What is <em>not</em> in these numbers</h3>
+  <ul>
+    <li><strong>Most of the tax code.</strong> Tax <em>is</em> included for the two countries offered, but only the parts that a plain private investor holding two ETFs meets: the yearly charge on the balance, the tax on fund income, and the tax on the gain at sale. Wealth taxes elsewhere, inheritance tax, exit taxes on changing residence, the Italian financial transaction tax (which does not apply to ETFs anyway), losses carried forward from previous years and any allowance you may already have used elsewhere are all absent.</li>
+    <li><strong>Trading and platform costs.</strong> Only the funds' yearly management fee is charged. Broker commissions, currency conversion and account fees are not.</li>
+    <li><strong>Rebalancing.</strong> The two parts are left to drift apart. If shares boom, your risky share grows and stays grown.</li>
+    <li><strong>Your behaviour.</strong> The simulation never panics, never stops paying in, never sells at the bottom. Real people do.</li>
+    <li><strong>Currency risk.</strong> The world share index is treated in euro terms without hedging, which is what a typical euro investor holds — but exchange-rate history before 1971 was a very different world.</li>
+    <li><strong>The unprecedented.</strong> Everything here is assembled from things that already happened. The next decade is allowed to be stranger than any of them.</li>
+  </ul>
+  <div class="callout warn">
+    <strong>This is not financial or tax advice.</strong> It is a calculator for building
+    intuition about risk. It cannot know your situation, your other savings, your
+    job security, your debts or the rest of your tax position. Past returns genuinely
+    do not predict future ones, and tax rules change.
+  </div>
+</section>
+
+<!-- ================================================================ JARGON -->
+<section class="card prose" aria-labelledby="glossTitle">
+  <h2 id="glossTitle">8 · Every word explained</h2>
+  <dl class="glossary">
+    <dt>ETF (exchange-traded fund)</dt>
+    <dd>A single thing you can buy that holds many investments at once. A “world share ETF” holds shares in thousands of companies worldwide, so no single company failing can hurt you much. It trades like a share and typically costs 0.1–0.3% of your money per year.</dd>
+
+    <dt>Government bond</dt>
+    <dd>A loan to a government. You hand over money, receive interest, and get the money back at the end. Safer than shares, because governments rarely fail to pay — but the market price of an existing bond falls when new bonds start offering higher interest.</dd>
+
+    <dt>Real return (“after inflation”)</dt>
+    <dd>How much more you can actually buy. If your money grows 5% but prices rise 2%, your real return is about 3%. Every headline number on this page is real unless you switch to “euros of the day”.</dd>
+
+    <dt>Total return</dt>
+    <dd>Price change <em>plus</em> the dividends and interest you received, assuming you reinvested them. Ignoring dividends would understate share returns by roughly 2–4% a year — so we never do.</dd>
+
+    <dt>Percentile</dt>
+    <dd>A position in the ranking. The “5th percentile” means: line up all outcomes from worst to best, and this is the one 5% of the way along. 95 out of 100 did better.</dd>
+
+    <dt>Median (the “middle outcome”)</dt>
+    <dd>The 50th percentile — the outcome exactly in the middle. More representative than the average, which a few enormous winners can pull far away from typical experience.</dd>
+
+    <dt>Volatility</dt>
+    <dd>How much returns bounce around from year to year. Higher volatility means a wider range of outcomes and a rougher ride, in both directions.</dd>
+
+    <dt>Drawdown</dt>
+    <dd>How far your balance has fallen from its own highest point so far. A 40% drawdown means that at some moment you were looking at 40% less than the most you had ever had.</dd>
+
+    <dt>TER (total expense ratio)</dt>
+    <dd>The fund's yearly fee, taken automatically out of the fund's value. 0.20% means €20 a year on €10 000. Small numbers, but they compound: 0.5% a year costs about 5% of your money over ten years.</dd>
+
+    <dt>Correlation</dt>
+    <dd>Whether two things move together. +1 means always in lockstep, 0 means unrelated, −1 means perfect opposites. Shares and bonds have been roughly <b id="dsCorr">0.2</b> here — related, but loosely, which is exactly what makes holding both useful.</dd>
+
+    <dt>Monte Carlo simulation</dt>
+    <dd>Running the same plan through an enormous number of possible futures and then studying the whole collection of results, rather than trying to guess the single right answer.</dd>
+
+    <dt>Accumulating vs distributing fund</dt>
+    <dd>An <em>accumulating</em> fund keeps the dividends and interest it receives and reinvests them for you, so your holding simply becomes worth more. A <em>distributing</em> fund pays the cash into your account. The investments are identical; only the plumbing differs — and in Italy that plumbing decides whether you are taxed every year or only when you sell.</dd>
+
+    <dt>Imposta di bollo / IVAFE (Italy)</dt>
+    <dd>A yearly charge of 0.20% on the value of your investments — €20 a year on €10 000 — regardless of whether you made money. Charged by your bank if the account is Italian (<em>imposta di bollo</em>) or declared by you if the broker is foreign (<em>IVAFE</em>). It is the one tax you pay even in a losing year.</dd>
+
+    <dt>Imposta sostitutiva (Italy)</dt>
+    <dd>The flat tax on investment gains, 26%, which replaces income tax on them. Reduced to 12.5% on the part of the return that comes from government bonds of countries on Italy's “white list” — which is why the bond part of this plan is taxed more gently than the share part.</dd>
+
+    <dt>White list (Italy)</dt>
+    <dd>The official list of countries whose government bonds get the reduced 12.5% rate rather than 26%. It includes all euro-area governments, so a euro government bond ETF that really holds the bonds qualifies.</dd>
+
+    <dt>Capital gains tax (UK)</dt>
+    <dd>Tax on the profit when you sell, not on the money you invested. 18% if your income keeps you in the basic-rate band, 24% above it, and the first £3,000 of gains in a tax year is free. Losses can be set against gains — which is not true in Italy.</dd>
+
+    <dt>Excess reportable income (UK)</dt>
+    <dd>The income a fund earned but did not pay out. If a fund has UK “reporting status”, you owe tax on that income in the year it arose even though you never saw the cash — and the tax you paid is then added to your cost base so the same money is not taxed again when you sell.</dd>
+
+    <dt>ISA (UK)</dt>
+    <dd>An Individual Savings Account: an ordinary investment account inside a tax-free wrapper. No tax on the income, no tax on the gains, nothing to declare. There is a yearly limit on how much you may pay in, which this page does not check.</dd>
+
+    <dt>Cost base (or cost basis)</dt>
+    <dd>What the tax authority treats as the amount you paid. Your taxable gain is what you sell for minus your cost base. Every euro you contribute raises it, and so does any income you have already been taxed on — that is the mechanism that stops the same money being taxed twice.</dd>
+
+    <dt>Nominal gain</dt>
+    <dd>The gain measured in plain euros, ignoring inflation. Tax is always charged on this, never on the smaller real gain — so inflation quietly increases the true tax rate on your purchasing power.</dd>
+
+    <dt>Bootstrap / block bootstrap</dt>
+    <dd>Building new possible histories by drawing pieces out of the real one. “Block” means we draw multi-year stretches instead of single years, so that patterns lasting several years survive.</dd>
+  </dl>
+</section>
+
+<!-- ================================================================== DATA -->
+<section class="card prose" aria-labelledby="dataTitle">
+  <h2 id="dataTitle">9 · Where the data comes from</h2>
+  <p>
+    <b id="dsN">126</b> years, <span id="dsRange5">1900–2025</span>. Dataset built on
+    <span id="dsBuilt">—</span>.
+  </p>
+
+  <h3>1900 – <span id="dsSplice">2020</span></h3>
+  <p>
+    The <a href="https://www.macrohistory.net/database/" rel="noopener">Jordà-Schularick-Taylor
+    Macrohistory Database</a> (release 6), the standard academic source for long-run
+    financial history. It gives yearly equity total returns, long government bond
+    total returns and consumer prices for 18 advanced economies.
+  </p>
+  <ul>
+    <li><strong>World shares</strong> = the average real equity return across the 16 countries that report equity data, weighted by each country's economy size.</li>
+    <li><strong>Euro bonds</strong> = the same calculation across Germany, France, Italy, Spain, the Netherlands, Belgium, Portugal and Finland.</li>
+    <li><strong>Weights use the <em>previous</em> year's economy size</strong>, so the calculation never uses information it could not have had at the time.</li>
+    <li>Real return per country = (1 + that country's total return) ÷ (1 + that country's inflation) − 1.</li>
+  </ul>
+
+  <h3><span id="dsSpliceFrom">2021</span> – present</h3>
+  <p>
+    Actual investable funds, so the recent past reflects what you could really have
+    bought: <strong>iShares Core MSCI World UCITS ETF</strong> (IWDA.AS) in euros for
+    shares, <strong>iShares Core EUR Govt Bond UCITS ETF</strong> (IEGA.AS) for bonds,
+    both on dividend-adjusted daily closing prices, deflated by the euro-area HICP
+    inflation index from Eurostat.
+  </p>
+
+  <h3>What the numbers look like</h3>
+  <div class="table-wrap">
+    <table>
+      <caption class="skip">Long-run statistics of the two assets, after inflation</caption>
+      <thead><tr><th>After inflation, <span id="dsRange6">1900–2025</span></th><th>World shares</th><th>Euro government bonds</th></tr></thead>
+      <tbody>
+        <tr><td>Growth per year</td><td id="dsEquityCagr2">—</td><td id="dsBondCagr2">—</td></tr>
+        <tr><td>Year-to-year bounce</td><td id="dsEquityVol">—</td><td id="dsBondVol">—</td></tr>
+        <tr><td>Best single year</td><td id="dsEquityBest">—</td><td id="dsBondBest">—</td></tr>
+        <tr><td>Worst single year</td><td id="dsEquityWorst2">—</td><td id="dsBondWorst2">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The five worst years on record</h3>
+  <div class="table-wrap">
+    <table>
+      <caption class="skip">Worst single years for each asset, after inflation</caption>
+      <thead><tr><th>#</th><th>Share year</th><th>Shares</th><th>Bond year</th><th>Bonds</th></tr></thead>
+      <tbody id="worstYearsBody"></tbody>
+    </table>
+  </div>
+  <p class="sub">
+    Two of those bond years are the German hyperinflation and its aftermath, which
+    wiped out domestic bondholders completely. That is not a statistical glitch — it
+    is why the “1 in 100” bond outcome looks as grim as it does, and why the era
+    selector under advanced settings exists.
+  </p>
+
+  <h3>The era you are learning from right now</h3>
+  <div class="table-wrap">
+    <table>
+      <caption class="skip">Statistics for the selected historical era</caption>
+      <thead><tr><th><span id="eraYears">1900–2025</span> (<span id="eraN">126</span> years)</th><th>World shares</th><th>Euro government bonds</th></tr></thead>
+      <tbody>
+        <tr><td>Growth per year, after inflation</td><td id="eraEquityCagr">—</td><td id="eraBondCagr">—</td></tr>
+        <tr><td>Year-to-year bounce</td><td id="eraEquityVol">—</td><td id="eraBondVol">—</td></tr>
+        <tr><td>Correlation between the two</td><td colspan="2" id="eraCorr">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Honest weaknesses in the data</h3>
+  <ul>
+    <li><strong>Economy-size weights, not market-size weights.</strong> Nobody has reliable stock-market sizes for every country back to 1900, so the world index is weighted by GDP. This is standard practice in long-horizon research, but it is not what a real index fund does today.</li>
+    <li><strong>Yearly data, not daily.</strong> Before <span id="dsSplice2">2020</span> we only have one number per year. The month-by-month detail is reconstructed statistically, not observed.</li>
+    <li><strong>Only countries that survived as data providers.</strong> The dataset covers advanced economies that kept records. Markets that were closed or destroyed — Russia in 1917, China in 1949 — are absent, which makes history look slightly kinder than it was.</li>
+    <li><strong>The join in <span id="dsSpliceFrom2">2021</span>.</strong> Two different kinds of measurement are stitched together. They were checked against each other on the years where both exist, and they agree closely, but a join is a join.</li>
+    <li><strong>The euro did not exist for most of this history.</strong> “Euro government bonds” before 1999 means the bonds of the countries that later formed the euro, in their own currencies.</li>
+  </ul>
+
+  <h3>Check it yourself</h3>
+  <p>
+    Everything on this page runs in your browser; nothing is sent anywhere. The
+    dataset, the simulation engine and its test suite are all in the repository:
+  </p>
+  <ul>
+    <li><code>data-build/build_dataset.py</code> — downloads the sources and rebuilds the dataset from scratch</li>
+    <li><code>data/returns.json</code> — the <b id="dsN3">126</b> years of returns, in plain text</li>
+    <li><code>js/engine.js</code> — the simulation itself</li>
+    <li><code>js/tax.js</code> — the whole country-specific tax model, rates included</li>
+    <li><code>tests/verify.mjs</code> — <b id="dsChecks">83</b> checks, including proofs against closed-form algebra where one exists</li>
+    <li><code>tests/calibrate_blocks.mjs</code> — the study that chose the five-year stretch length</li>
+  </ul>
+  <p class="sub">
+    The random seed is shown under the chart. Same inputs and same seed always give
+    exactly the same answer, so any number here can be reproduced.
+  </p>
+</section>
+
+<footer class="foot">
+  <p>
+    Built with historical data from the Jordà-Schularick-Taylor Macrohistory
+    Database, Eurostat and Yahoo Finance; tax rates as in force for the 2026 Italian
+    year and the 2026/27 UK year. No tracking, no cookies, no data leaves your
+    browser.
+  </p>
+  <p>
+    <strong>Not financial or tax advice.</strong> For education only. If real money and
+    real consequences are involved, talk to someone qualified who knows your situation.
+  </p>
+</footer>
+
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
