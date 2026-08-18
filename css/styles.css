@@ -443,11 +443,11 @@ details.card.box[open] > summary {
    colour as a grey block. Wrapping still happens at the same 150px, because that
    is the flex basis. The two leading rows keep the grid — their groupings are
    deliberate and are set by hand below. */
-.tiles:not(.tiles-3):not(.tiles-4) {
+.tiles:not(.tiles-3) {
   display: flex;
   flex-wrap: wrap;
 }
-.tiles:not(.tiles-3):not(.tiles-4) > .tile {
+.tiles:not(.tiles-3) > .tile {
   flex: 1 1 150px;
 }
 /* The answer card leads with three tiles — the bad end, the average, the good
@@ -482,29 +482,18 @@ details.card.box[open] > summary {
   /* Four figures across need a little less room each; two across do not. */
   .tiles.tiles-3.with-advisor .v { font-size: 23px; }
 }
-@media (min-width: 660px) {
-  .tiles.tiles-4 { grid-template-columns: repeat(4, 1fr); }
-}
-/* Four tiles into two columns is 2×2 with nothing left over. Left to auto-fit
-   this row sat in three columns on a middling screen, and the fourth tile then
-   had two empty cells beside it. */
-@media (max-width: 659px) {
-  .tiles.tiles-4 { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 379px) {
-  .tiles.tiles-4 { grid-template-columns: 1fr; }
-}
 /* The leading row is the answer to the question the page asks, so it is louder
-   than the supporting row underneath it. */
+   than the supporting row underneath it. The supporting row takes its columns
+   from the same rules — it holds three tiles too — and only turns the volume
+   down. */
 .tiles.tiles-3 .v { font-size: 26px; }
-.tiles.tiles-4 { margin-top: 10px; }
-.tiles.tiles-4 .v { font-size: 20px; }
-.tiles.tiles-4 .tile { padding: 12px 14px; }
+.tiles.tiles-sub { margin-top: 10px; }
+.tiles.tiles-3.tiles-sub .v { font-size: 20px; }
+.tiles.tiles-sub .tile { padding: 12px 14px; }
 /* Labels of different lengths would otherwise put the figures at different
    heights across a row, which reads as though they were different kinds of
    thing. Two lines of room for every label lines the numbers up. */
-.tiles.tiles-3 .k,
-.tiles.tiles-4 .k { min-height: 3.2em; }
+.tiles.tiles-3 .k { min-height: 3.2em; }
 .tile {
   background: var(--surface-1);
   padding: 14px 16px;

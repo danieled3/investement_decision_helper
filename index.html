@@ -289,22 +289,24 @@
   </div>
   <p class="sub" id="heroNote"></p>
 
-  <!-- The three the reader asked for first: the bad end, the average, the good
-       end. Everything else is a row below them. The fourth cell only exists when
-       a consultant is being paid, and it belongs up here with them: a fee on the
-       whole balance is the same size as the difference between these numbers. -->
+  <!-- The big figure above is the most likely outcome, so these three say how far
+       either side of it things can go and how often it ends badly. There is no
+       average here on purpose: it sits above the most likely outcome, which reads
+       as a contradiction rather than as the skew it actually is. The fourth cell
+       only exists when a consultant is being paid, and it belongs up here with
+       them: a fee on the whole balance is the same size as the difference between
+       these numbers. -->
   <div class="tiles tiles-3" id="tilesLead">
     <div class="tile" id="tileP1"><span class="k" data-i18n="tile.p1">Very unlucky — worst 1 in 100</span><span class="v">—</span><span class="n"></span></div>
-    <div class="tile" id="tileMean"><span class="k" data-i18n="tile.mean">The average of all the journeys</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileP99"><span class="k" data-i18n="tile.p99">Very lucky — best 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileBelow"><span class="k" data-i18n="tile.below">Chance of ending up behind</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileAdvisor" hidden><span class="k" data-i18n="tile.advisor">To the consultant, on average</span><span class="v">—</span><span class="n"></span></div>
   </div>
 
-  <div class="tiles tiles-4">
+  <div class="tiles tiles-3 tiles-sub">
     <div class="tile" id="tilePaidIn"><span class="k" data-i18n="tile.paidIn">Money you put in</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileMinPath"><span class="k" data-i18n="tile.minPath">Lowest point along the way</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileMaxPath"><span class="k" data-i18n="tile.maxPath">Highest point along the way</span><span class="v">—</span><span class="n"></span></div>
-    <div class="tile" id="tileBelow"><span class="k" data-i18n="tile.below">Chance of ending up behind</span><span class="v">—</span><span class="n"></span></div>
   </div>
 
   <h3 style="margin:20px 0 2px" data-i18n="res.chart.title">The whole range, year by year</h3>

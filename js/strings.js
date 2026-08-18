@@ -144,7 +144,6 @@ export const STRINGS = {
   },
   "tile.paidIn": { it: "Soldi che hai messo" },
   "tile.p1": { it: "Molto sfortunato — il peggior caso su 100" },
-  "tile.mean": { it: "La media di tutti i percorsi" },
   "tile.p99": { it: "Molto fortunato — il miglior caso su 100" },
   "tile.advisor": { it: "Al consulente, in media" },
   "tile.minPath": { it: "Punto più basso lungo la strada" },
@@ -814,10 +813,6 @@ export const STRINGS = {
   "js.note.above25": { en: "25 chances in 100 of ending above this", it: "25 possibilità su 100 di finire sopra" },
   "js.note.above5": { en: "5 chances in 100 of ending above this", it: "5 possibilità su 100 di finire sopra" },
   "js.note.above1": { en: "1 chance in 100 of ending above this", it: "1 possibilità su 100 di finire sopra" },
-  "js.note.mean": {
-    en: "pulled up by the luckiest few — the big figure above is the typical one",
-    it: "trascinata in alto dai pochi più fortunati — la cifra grande sopra è quella tipica",
-  },
   "js.note.paidIn": { en: "{start} now + {monthly}/month", it: "{start} adesso + {monthly}/mese" },
   /* In future euros the monthly payment is raised each year so that it keeps the
      same real value, which is why the total is larger than the plan as typed. */
@@ -829,13 +824,16 @@ export const STRINGS = {
     en: "chance of ending with less than you paid in",
     it: "probabilità di finire con meno di quanto hai versato",
   },
+  // One figure each, and it is the extreme one the label promises: the lowest the
+  // balance ever fell to, and the highest it ever reached, in the unluckiest and
+  // luckiest journey out of a hundred. Section 4 has the middling cases.
   "js.note.minPath": {
-    en: "in the typical journey; down to {p1} in the unluckiest 1 case in 100",
-    it: "nel percorso tipico; fino a {p1} nel caso più sfortunato su 100",
+    en: "the deepest it ever fell, in the unluckiest 1 case in 100",
+    it: "il punto più basso mai toccato, nel caso più sfortunato su 100",
   },
   "js.note.maxPath": {
-    en: "in the typical journey; up to {p99} in the luckiest 1 case in 100",
-    it: "nel percorso tipico; fino a {p99} nel caso più fortunato su 100",
+    en: "the highest it ever reached, in the luckiest 1 case in 100",
+    it: "il punto più alto mai raggiunto, nel caso più fortunato su 100",
   },
   "js.case.unlucky1": { en: "in the unluckiest 1 case in 100", it: "nel caso più sfortunato su 100" },
   "js.case.unlucky5": { en: "in the unluckiest 5 cases in 100", it: "nei 5 casi più sfortunati su 100" },
@@ -1093,8 +1091,8 @@ export const STRINGS = {
   // The share of the gain leads this note: a percentage of the balance sounds
   // small, and the same money as a slice of the profit is what it really costs.
   "js.adv.leadNote": {
-    en: "{share} of your profit — {rate} a year of the balance, over {years} years",
-    it: "{share} del tuo guadagno — {rate} all'anno sul capitale, per {years} anni",
+    en: "{share} of your profit, over {years} years",
+    it: "{share} del tuo guadagno, in {years} anni",
   },
   // A plan with no profit to share out has nothing to take a share of.
   "js.adv.leadNote.noProfit": {

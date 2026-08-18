@@ -624,10 +624,6 @@ function render() {
 
   // ---------------------------------------------------------------- tiles
   setTile("tileP1", euro(v.final.p1), t("js.note.below1"));
-  /* The engine has always computed the mean and the page never showed it. It is
-     shown next to the two extremes, with the warning that it is not the typical
-     outcome — that is exactly why the headline is the median. */
-  setTile("tileMean", euro(v.final.mean), t("js.note.mean"));
   setTile("tileP5", euro(v.final.p5), t("js.note.below5"));
   setTile("tileP25", euro(v.final.p25), t("js.note.below25"));
   setTile("tileP75", euro(v.final.p75), t("js.note.above25"));
@@ -640,14 +636,12 @@ function render() {
     }));
   setTile("tileBelow", pct(v.probBelowPaidIn, 1), t("js.note.below"));
 
-  // The two path-extreme tiles in the summary card: the typical journey as the
-  // headline number, the 1-in-100 case as the warning underneath.
-  setTile("tileMinPath", euro(v.lowest.p50), t("js.note.minPath", {
-    p1: euro(v.lowest.p1),
-  }));
-  setTile("tileMaxPath", euro(v.highest.p50), t("js.note.maxPath", {
-    p99: euro(v.highest.p99),
-  }));
+  // The two path-extreme tiles in the summary card carry one figure each, and it
+  // is the extreme the label promises rather than the typical journey: two
+  // numbers in one tile, one of them the middle case, read as a contradiction.
+  // Section 4 lays out the whole ranking for both.
+  setTile("tileMinPath", euro(v.lowest.p1), t("js.note.minPath"));
+  setTile("tileMaxPath", euro(v.highest.p99), t("js.note.maxPath"));
 
   // ---------------------------------------------------------- the bumpy road
   setTile("tileLow1", euro(v.lowest.p1), t("js.case.unlucky1"));
@@ -917,7 +911,6 @@ function renderAdvisor(v, o) {
     a.gainBeforeAtMean > 0
       ? t("js.adv.leadNote", {
           share: pct(a.shareOfGainAtMean, 1),
-          rate,
           years: o.years,
         })
       : t("js.adv.leadNote.noProfit", { rate, years: o.years })
