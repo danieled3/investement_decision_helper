@@ -1113,8 +1113,8 @@ export const STRINGS = {
     it: "Una perdita su un fondo <b>non</b> può essere compensata con un guadagno sull'altro: {country} registra i guadagni degli ETF e le perdite degli ETF in due categorie separate (<em>redditi di capitale</em> e <em>redditi diversi</em>) che non si incontrano mai.",
   },
   "js.tax.rule.nominal": {
-    en: "Tax is charged on the gain in plain euros, with no allowance for inflation — so raising the inflation assumption raises the tax bill even though nothing real has changed.",
-    it: "Le imposte si pagano sul guadagno in euro correnti, senza alcuno sconto per l'inflazione — quindi alzare l'ipotesi di inflazione alza il conto fiscale anche se nulla di reale è cambiato.",
+    en: "Tax is charged on the gain in cash terms, with no allowance for inflation — so raising the inflation assumption raises the tax bill even though nothing real has changed.",
+    it: "Le imposte si pagano sul guadagno in termini nominali, senza alcuno sconto per l'inflazione — quindi alzare l'ipotesi di inflazione alza il conto fiscale anche se nulla di reale è cambiato.",
   },
   "js.tax.callout": {
     en: "<strong>The tax costs you more than the tax.</strong> On the middle journey you hand over {total}, which is {share} of the {gross} profit you made. But your final total drops by <em>more</em> than {total}: every euro taken early is also a euro that can never grow again. Set the country to “nowhere” and compare the headline to see the full cost.",
