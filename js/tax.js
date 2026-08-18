@@ -52,13 +52,12 @@
  * 2026/27 UK year; your own position can differ.
  */
 
+import { t, ratePct, euro } from "./i18n.js";
+
 /** Rates in force, as at August 2026. */
 export const REGIMES = {
   none: {
     id: "none",
-    label: "No tax — show the gross result",
-    country: "—",
-    short: "no tax",
     wealthRate: 0,
     equityExit: 0,
     bondExit: 0,
@@ -74,9 +73,6 @@ export const REGIMES = {
 
   it: {
     id: "it",
-    label: "Italy",
-    country: "Italy",
-    short: "Italian tax",
     // imposta di bollo sul deposito titoli (or IVAFE with a foreign broker)
     wealthRate: 0.002,
     // imposta sostitutiva: 26%, reduced to 12.5% on white-list government bonds
@@ -96,9 +92,6 @@ export const REGIMES = {
 
   gb: {
     id: "gb",
-    label: "United Kingdom",
-    country: "the UK",
-    short: "UK tax",
     wealthRate: 0,
     // capital gains tax, both sleeves
     equityExit: 0.18,
@@ -115,7 +108,6 @@ export const REGIMES = {
     allowanceCurrency: "gbp",
     bands: {
       basic: {
-        label: "Basic rate (income under £50,270)",
         equityExit: 0.18,
         bondExit: 0.18,
         equityIncomeRate: 0.0875,
@@ -124,7 +116,6 @@ export const REGIMES = {
         equityIncomeAllowance: 500,
       },
       higher: {
-        label: "Higher rate (£50,270 – £125,140)",
         equityExit: 0.24,
         bondExit: 0.24,
         equityIncomeRate: 0.3375,
@@ -133,7 +124,6 @@ export const REGIMES = {
         equityIncomeAllowance: 500,
       },
       additional: {
-        label: "Additional rate (over £125,140)",
         equityExit: 0.24,
         bondExit: 0.24,
         equityIncomeRate: 0.3935,
@@ -170,9 +160,6 @@ export function resolveTaxPlan(sel = {}) {
     return {
       enabled: false,
       id: sheltered ? "gb_isa" : "none",
-      country: base.country,
-      label: sheltered ? "United Kingdom — inside an ISA" : base.label,
-      short: sheltered ? "no tax (ISA)" : "no tax",
       wealthRate: 0,
       equityExit: 0,
       bondExit: 0,
@@ -206,9 +193,6 @@ export function resolveTaxPlan(sel = {}) {
   return {
     enabled: true,
     id: base.id,
-    country: base.country,
-    label: band ? `${base.label} — ${band.label}` : base.label,
-    short: base.short,
     band: band ? s.band : null,
     fundType: s.fundType,
     wealthRate,
@@ -279,38 +263,53 @@ export function incomeTaxNominal(accrued, rate, allowance) {
   return taxable > 0 ? taxable * rate : 0;
 }
 
-/* A rate as a reader would write it: 26%, 12.5%, 8.75%, 0.20%. Trailing zeros
-   are dropped, because "13%" for a 12.5% rate would simply be wrong. */
-const asRate = (x, forceDigits = null) =>
-  forceDigits !== null
-    ? `${(x * 100).toFixed(forceDigits)}%`
-    : `${(x * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "")}%`;
+/*
+ * Naming a plan. The rates above are numbers and travel unchanged into the
+ * worker; the words that describe them are language-dependent, so they live in
+ * the dictionary and are looked up from the plan's id. Keeping the words out of
+ * the plan object also keeps it a pure bag of numbers, which is what the
+ * simulation loop wants.
+ */
 
-/* Thin spaces between thousands, matching the euro amounts everywhere else. */
-const asEuro = (x) =>
-  `€${Math.round(x).toLocaleString("en-GB").replace(/,/g, " ")}`;
+/** "Italy — Higher rate (£50,270 – £125,140)" — the full name of the plan. */
+export function planLabel(plan) {
+  const base = t(`js.tax.plan.${plan.id}.label`);
+  return plan.band ? `${base} — ${t(`js.tax.band.${plan.band}`)}` : base;
+}
+
+/** "Italian tax" — short enough to drop into the middle of a sentence. */
+export function planShort(plan) {
+  return t(`js.tax.plan.${plan.id}.short`);
+}
+
+/** "Italy" / "the UK" — the taxing authority as the subject of a sentence. */
+export function planCountry(plan) {
+  const id = plan.id === "gb_isa" ? "gb" : plan.id;
+  return t(`js.tax.plan.${id}.country`);
+}
 
 /** One-line, plain-language description of what is being applied. */
 export function describeTaxPlan(plan) {
   if (!plan.enabled) {
-    return plan.id === "gb_isa"
-      ? "Inside an ISA nothing is taxed: no tax on the income, no tax on the gain, nothing yearly."
-      : "No tax is being applied — these are gross figures.";
+    return t(plan.id === "gb_isa" ? "js.tax.describe.isa" : "js.tax.describe.none");
   }
-  const parts = [];
-  parts.push(`${asRate(plan.equityExit)} on the gain of the share part`);
-  parts.push(`${asRate(plan.bondExit)} on the gain of the bond part`);
+  const parts = [
+    t("js.tax.describe.equityExit", { rate: ratePct(plan.equityExit) }),
+    t("js.tax.describe.bondExit", { rate: ratePct(plan.bondExit) }),
+  ];
   if (plan.wealthRate > 0) {
-    parts.push(`${asRate(plan.wealthRate, 2)} a year on the whole balance`);
+    parts.push(t("js.tax.describe.wealth", { rate: ratePct(plan.wealthRate, 2) }));
   }
   if (plan.taxesIncome) {
     parts.push(
-      `${asRate(plan.equityIncomeRate)} a year on share income and ` +
-        `${asRate(plan.bondIncomeRate)} a year on bond income`
+      t("js.tax.describe.income", {
+        eq: ratePct(plan.equityIncomeRate),
+        bd: ratePct(plan.bondIncomeRate),
+      })
     );
   }
   if (plan.exitAllowance > 0) {
-    parts.push(`the first ${asEuro(plan.exitAllowance)} of gain in a year free`);
+    parts.push(t("js.tax.describe.allowance", { amount: euro(plan.exitAllowance) }));
   }
-  return `Applied: ${parts.join("; ")}.`;
+  return t("js.tax.describe.applied", { parts: parts.join("; ") });
 }

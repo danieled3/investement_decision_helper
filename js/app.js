@@ -9,15 +9,18 @@
  * engine result.
  */
 
-import { createFanChart, createHistogram, euro, euroCompact, pct, signedPct } from "./chart.js";
+import { createFanChart, createHistogram } from "./chart.js";
 import { DEFAULTS } from "./engine.js";
-import { REGIMES, TAX_DEFAULTS, resolveTaxPlan, describeTaxPlan } from "./tax.js";
+import {
+  t, num, count, euro, pct, signedPct, ratePct,
+  initI18n, setLang, getLang, onLangChange,
+} from "./i18n.js";
+import {
+  REGIMES, TAX_DEFAULTS, resolveTaxPlan, describeTaxPlan,
+  planLabel, planShort, planCountry,
+} from "./tax.js";
 
 const $ = (id) => document.getElementById(id);
-
-/* Plain counts get the same thin-space grouping as the euro amounts, so a
-   European reader never has to guess whether a comma is a decimal point. */
-const count = (n) => Math.round(n).toLocaleString("en-GB").replace(/,/g, "\u202f");
 
 let DATA = null;
 let worker = null;
@@ -58,7 +61,7 @@ const FIELDS = {
 };
 
 function readForm() {
-  const num = (id, min, max, dflt) => {
+  const field = (id, min, max, dflt) => {
     const v = parseFloat($(id).value);
     if (!Number.isFinite(v)) return dflt;
     return Math.max(min, Math.min(max, v));
@@ -71,26 +74,26 @@ function readForm() {
     band: $("taxBand").value,
     wrapper: $("taxWrapper").value,
     fundType: $("taxFund").value,
-    equityYield: num("equityYield", 0, 10, 1.8) / 100,
-    bondYield: num("bondYield", 0, 15, 3) / 100,
-    wealthRate: num("wealthRate", 0, 3, 0.2) / 100,
-    gbpEur: num("gbpEur", 0.5, 3, 1.15),
+    equityYield: field("equityYield", 0, 10, 1.8) / 100,
+    bondYield: field("bondYield", 0, 15, 3) / 100,
+    wealthRate: field("wealthRate", 0, 3, 0.2) / 100,
+    gbpEur: field("gbpEur", 0.5, 3, 1.15),
   });
   return {
     tax,
-    initialRisky: num("initialRisky", 0, 1e9, 10000),
-    initialSafe: num("initialSafe", 0, 1e9, 5000),
-    monthlyRisky: num("monthlyRisky", 0, 1e7, 400),
-    monthlySafe: num("monthlySafe", 0, 1e7, 100),
-    years: Math.round(num("years", 1, 40, 10)),
-    terRisky: num("terRisky", 0, 5, 0.2) / 100,
-    terSafe: num("terSafe", 0, 5, 0.1) / 100,
-    inflation: num("inflation", -5, 20, 2) / 100,
+    initialRisky: field("initialRisky", 0, 1e9, 10000),
+    initialSafe: field("initialSafe", 0, 1e9, 5000),
+    monthlyRisky: field("monthlyRisky", 0, 1e7, 400),
+    monthlySafe: field("monthlySafe", 0, 1e7, 100),
+    years: Math.round(field("years", 1, 40, 10)),
+    terRisky: field("terRisky", 0, 5, 0.2) / 100,
+    terSafe: field("terSafe", 0, 5, 0.1) / 100,
+    inflation: field("inflation", -5, 20, 2) / 100,
     eraStart,
     eraEnd,
     nPaths: parseInt($("nPaths").value, 10) || DEFAULTS.nPaths,
     blockMean: parseInt($("blockMean").value, 10) || DEFAULTS.blockMean,
-    seed: Math.round(num("seed", 1, 2 ** 31 - 1, DEFAULTS.seed)),
+    seed: Math.round(field("seed", 1, 2 ** 31 - 1, DEFAULTS.seed)),
     intraYear: $("intraYear").checked,
   };
 }
@@ -106,6 +109,7 @@ function writeHash(o) {
   p.set("y", o.years);
   p.set("e", `${o.eraStart}-${o.eraEnd}`);
   p.set("v", view);
+  p.set("l", getLang());
   p.set("i", (o.inflation * 100).toFixed(2));
   p.set("c", $("taxCountry").value);
   if ($("taxCountry").value === "it") p.set("f", $("taxFund").value);
@@ -148,6 +152,10 @@ function applyHash() {
 // ------------------------------------------------------------------- plumbing
 
 async function boot() {
+  // The language has to be settled before anything writes text, and before the
+  // prose is replaced — initI18n harvests the English out of the page first.
+  initI18n(new URLSearchParams(location.hash.slice(1)).get("l"));
+
   const res = await fetch("data/returns.json", { cache: "no-cache" });
   if (!res.ok) throw new Error(`could not load data/returns.json (${res.status})`);
   DATA = await res.json();
@@ -162,7 +170,7 @@ async function boot() {
     worker.onmessage = onWorkerMessage;
     worker.onerror = () => {
       worker = null;
-      setStatus("Running in this tab (worker unavailable) — the page may pause briefly.");
+      setStatus(t("js.status.noWorker"));
       run();
     };
     worker.postMessage({ type: "data", data: DATA });
@@ -170,9 +178,11 @@ async function boot() {
     worker = null;
   }
 
+  onLangChange(onLanguageChanged);
   wireControls();
   applyHash();
   syncViewButtons();
+  syncLangButtons();
   syncTaxFields();
   run();
 }
@@ -181,11 +191,11 @@ function onWorkerMessage(ev) {
   const m = ev.data;
   if (m.type === "ready") return;
   if (m.type === "progress") {
-    setStatus(`Simulating… ${Math.round(m.value * 100)}%`);
+    setStatus(t("js.status.simulatingPct", { pct: Math.round(m.value * 100) }));
     return;
   }
   if (m.type === "error") {
-    setStatus(`Could not run: ${m.message}`);
+    setStatus(t("js.status.failed", { msg: m.message }));
     document.body.classList.remove("busy");
     return;
   }
@@ -223,7 +233,7 @@ function run() {
   writeHash(opts);
   updatePlanSummary(opts);
   document.body.classList.add("busy");
-  setStatus("Simulating…");
+  setStatus(t("js.status.simulating"));
   runToken++;
   if (worker) {
     worker.postMessage({ type: "run", opts, token: runToken });
@@ -249,8 +259,8 @@ function isDark() {
 function syncThemeLabel() {
   const dark = isDark();
   const btn = $("themeToggle");
-  btn.textContent = dark ? "Light mode" : "Dark mode";
-  btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  btn.textContent = t(dark ? "js.theme.toLight" : "js.theme.toDark");
+  btn.setAttribute("aria-label", t(dark ? "js.theme.ariaLight" : "js.theme.ariaDark"));
 }
 
 function updatePlanSummary(o) {
@@ -258,7 +268,7 @@ function updatePlanSummary(o) {
   const monthly = o.monthlyRisky + o.monthlySafe;
   $("sumStart").textContent = euro(start);
   $("sumMonthly").textContent = euro(monthly);
-  $("sumHorizon").textContent = `${o.years} years`;
+  $("sumHorizon").textContent = t("js.years", { n: o.years });
   $("sumTotal").textContent = euro(start + monthly * o.years * 12);
   $("taxSummary").textContent = describeTaxPlan(o.tax);
 }
@@ -293,7 +303,7 @@ function wireControls() {
   $("toggleTable").addEventListener("click", () => {
     showTable = !showTable;
     $("tableView").hidden = !showTable;
-    $("toggleTable").textContent = showTable ? "Hide the numbers" : "Show the numbers";
+    $("toggleTable").textContent = t(showTable ? "js.table.hide" : "js.table.show");
     $("toggleTable").setAttribute("aria-expanded", String(showTable));
     if (showTable && lastResult) renderTable();
   });
@@ -312,6 +322,21 @@ function wireControls() {
     syncThemeLabel();
     if (lastResult) render(); // colours are read from CSS variables
   });
+
+  $("langEn").addEventListener("click", () => setLanguage("en"));
+  $("langIt").addEventListener("click", () => setLanguage("it"));
+
+  /*
+   * A chart inside a closed <details> has no width, so it draws at zero size and
+   * stays that way until something asks it to redraw. The ResizeObserver in
+   * chart.js catches most of it, but opening a box is exactly the moment the
+   * reader wants to see something, so redraw explicitly.
+   */
+  for (const box of document.querySelectorAll("details.card.box, #chartOptions")) {
+    box.addEventListener("toggle", () => {
+      if (box.open && lastResult) render();
+    });
+  }
 
   $("resetBtn").addEventListener("click", () => {
     $("initialRisky").value = 10000;
@@ -337,6 +362,33 @@ function wireControls() {
     syncTaxFields(true);
     run();
   });
+}
+
+/*
+ * Changing language replaces the prose wholesale, which throws away every
+ * <span id> the dataset numbers were written into — so the fillers have to run
+ * again, and so does everything drawn from JavaScript.
+ */
+function setLanguage(next) {
+  if (next === getLang()) return;
+  setLang(next);
+}
+
+function syncLangButtons() {
+  $("langEn").setAttribute("aria-pressed", String(getLang() === "en"));
+  $("langIt").setAttribute("aria-pressed", String(getLang() === "it"));
+}
+
+function onLanguageChanged() {
+  syncLangButtons();
+  syncThemeLabel();
+  $("toggleTable").textContent = t(showTable ? "js.table.hide" : "js.table.show");
+  if (DATA) fillDatasetFacts();
+  const opts = readForm();
+  updatePlanSummary(opts);
+  writeHash(opts);
+  if (lastResult) render();
+  else setStatus(t("js.status.simulating"));
 }
 
 function setView(v) {
@@ -383,7 +435,7 @@ function syncTaxFields(countryChanged = false) {
 // ------------------------------------------------------------------ rendering
 
 function unitLabel() {
-  return view === "real" ? "today's euros" : "euros of the day";
+  return t(view === "real" ? "js.unit.real" : "js.unit.nominal");
 }
 
 /** Everything the view needs, already converted into the chosen unit. */
@@ -439,7 +491,11 @@ function pickOverlay(v) {
   else w = lastWindows.find((x) => String(x.startYear) === choice) || null;
   if (!w) return null;
   const path = v.factor ? w.path.map((x, t) => x * v.factor[t]) : w.path.slice();
-  return { label: `Real ${w.startYear}–${w.endYear}`, path, window: w };
+  return {
+    label: t("js.overlay.label", { a: w.startYear, b: w.endYear }),
+    path,
+    window: w,
+  };
 }
 
 function render() {
@@ -455,57 +511,84 @@ function render() {
   $("heroValue").textContent = euro(v.final.p50);
   $("heroUnit").textContent = unitLabel();
   $("taxPill").textContent = v.tax.enabled
-    ? `after ${plan.short}`
-    : plan.id === "gb_isa"
-      ? "tax-free inside an ISA"
-      : "before any tax";
+    ? t("js.pill.after", { short: planShort(plan) })
+    : t(plan.id === "gb_isa" ? "js.pill.isa" : "js.pill.none");
   $("taxPill").title = v.tax.enabled
-    ? `What you would keep after ${plan.label} — the balance minus the tax that selling would trigger.`
-    : "No tax has been deducted from any figure on this page.";
+    ? t("js.pill.titleAfter", { label: planLabel(plan) })
+    : t("js.pill.titleNone");
+  /* The profit, beside the total. It is the number people actually want and it
+     was missing: a total of €92 349 says nothing until you know that €75 000 of
+     it is your own money. Sign carried by the words, the figures and the colour,
+     because a loss must not be able to read as a gain at a glance. */
+  const gain = v.final.p50 - v.totalPaidIn;
+  const up = gain >= 0;
+  const gainEl = $("heroGain");
+  gainEl.textContent = t(up ? "js.heroGain.up" : "js.heroGain.down", {
+    amount: (up ? "+" : "−") + euro(Math.abs(gain)),
+    pct: signedPct(v.totalPaidIn > 0 ? gain / v.totalPaidIn : 0, 0),
+  });
+  gainEl.classList.toggle("down", !up);
+  gainEl.title = t("js.heroGain.title", {
+    paid: euro(v.totalPaidIn),
+    years: o.years,
+    unit: unitLabel(),
+  });
+
+  /* The multiple belongs to the headline, not to the money paid in — saying
+     "you paid in €75 000, that is 1.23× your money back" reads as if the
+     €75 000 were the multiple. Name each figure once, then say what unit both
+     are in. */
   const multiple = v.final.p50 / v.totalPaidIn;
-  $("heroNote").textContent =
-    `after ${o.years} years you would have paid in ${euro(v.totalPaidIn)} — ` +
-    `that is ${multiple.toFixed(2)}× your money back` +
-    (view === "real" ? ", already adjusted for inflation" : "") +
-    (v.tax.enabled ? `, and already after ${plan.short}` : ", before any tax");
+  $("heroNote").textContent = t("js.heroNote", {
+    years: o.years,
+    paid: euro(v.totalPaidIn),
+    mult: num(multiple, 2),
+    unit: unitLabel(),
+    taxClause: v.tax.enabled
+      ? t("js.heroNote.after", { short: planShort(plan) })
+      : t("js.heroNote.before"),
+  });
 
   // ---------------------------------------------------------------- tiles
-  setTile("tileP1", euro(v.final.p1), `1 chance in 100 of ending below this`);
-  setTile("tileP5", euro(v.final.p5), `5 chances in 100 of ending below this`);
-  setTile("tileP95", euro(v.final.p95), `5 chances in 100 of ending above this`);
-  setTile("tileP99", euro(v.final.p99), `1 chance in 100 of ending above this`);
-  setTile("tilePaidIn", euro(v.totalPaidIn), `${euro(o.initialRisky + o.initialSafe)} now + ${euro(o.monthlyRisky + o.monthlySafe)}/month`);
-  setTile(
-    "tileBelow",
-    pct(v.probBelowPaidIn, 1),
-    `chance of ending with less than you paid in`
-  );
+  setTile("tileP1", euro(v.final.p1), t("js.note.below1"));
+  /* The engine has always computed the mean and the page never showed it. It is
+     shown next to the two extremes, with the warning that it is not the typical
+     outcome — that is exactly why the headline is the median. */
+  setTile("tileMean", euro(v.final.mean), t("js.note.mean"));
+  setTile("tileP5", euro(v.final.p5), t("js.note.below5"));
+  setTile("tileP25", euro(v.final.p25), t("js.note.below25"));
+  setTile("tileP75", euro(v.final.p75), t("js.note.above25"));
+  setTile("tileP95", euro(v.final.p95), t("js.note.above5"));
+  setTile("tileP99", euro(v.final.p99), t("js.note.above1"));
+  setTile("tilePaidIn", euro(v.totalPaidIn), t("js.note.paidIn", {
+    start: euro(o.initialRisky + o.initialSafe),
+    monthly: euro(o.monthlyRisky + o.monthlySafe),
+  }));
+  setTile("tileBelow", pct(v.probBelowPaidIn, 1), t("js.note.below"));
+
+  // The two path-extreme tiles in the summary card: the typical journey as the
+  // headline number, the 1-in-100 case as the warning underneath.
+  setTile("tileMinPath", euro(v.lowest.p50), t("js.note.minPath", {
+    p1: euro(v.lowest.p1),
+  }));
+  setTile("tileMaxPath", euro(v.highest.p50), t("js.note.maxPath", {
+    p99: euro(v.highest.p99),
+  }));
 
   // ---------------------------------------------------------- the bumpy road
-  setTile("tileLow1", euro(v.lowest.p1), "in the unluckiest 1 case in 100");
-  setTile("tileLow5", euro(v.lowest.p5), "in the unluckiest 5 cases in 100");
-  setTile("tileLowMed", euro(v.lowest.p50), "in the typical case");
-  setTile("tileHigh50", euro(v.highest.p50), "in the typical case");
-  setTile("tileHigh95", euro(v.highest.p95), "in the luckiest 5 cases in 100");
-  setTile("tileHigh99", euro(v.highest.p99), "in the luckiest 1 case in 100");
-  setTile("tileDD50", pct(v.drawdown.p50, 0), "typical worst fall from a peak");
-  setTile("tileDD95", pct(v.drawdown.p95, 0), "worst fall in 5 cases in 100");
-  setTile("tileDD99", pct(v.drawdown.p99, 0), "worst fall in 1 case in 100");
-  setTile(
-    "tileGap1",
-    euro(v.worstGap.p1),
-    "worst that your balance ever sat below the money you had paid in, 1 case in 100"
-  );
-  setTile(
-    "tileGap50",
-    euro(v.worstGap.p50),
-    "the same figure in the typical case (0 means it never went underwater)"
-  );
+  setTile("tileLow1", euro(v.lowest.p1), t("js.case.unlucky1"));
+  setTile("tileLow5", euro(v.lowest.p5), t("js.case.unlucky5"));
+  setTile("tileLowMed", euro(v.lowest.p50), t("js.case.typical"));
+  setTile("tileHigh50", euro(v.highest.p50), t("js.case.typical"));
+  setTile("tileHigh95", euro(v.highest.p95), t("js.case.lucky5"));
+  setTile("tileHigh99", euro(v.highest.p99), t("js.case.lucky1"));
+  setTile("tileDD50", pct(v.drawdown.p50, 0), t("js.note.dd50"));
+  setTile("tileDD95", pct(v.drawdown.p95, 0), t("js.note.dd95"));
+  setTile("tileDD99", pct(v.drawdown.p99, 0), t("js.note.dd99"));
+  setTile("tileGap1", euro(v.worstGap.p1), t("js.note.gap1"));
+  setTile("tileGap50", euro(v.worstGap.p50), t("js.note.gap50"));
 
-  $("lowestExplain").textContent =
-    `The lowest point is measured month by month along every one of the ` +
-    `${count(o.nPaths)} simulated journeys, so it includes falls that ` +
-    `happen in the middle of a year and recover before the year ends.`;
+  $("lowestExplain").textContent = t("js.lowestExplain", { n: count(o.nPaths) });
 
   // ---------------------------------------------------------------- the chart
   fan.update({
@@ -542,15 +625,18 @@ function render() {
   const riskyShare = alloc > 0
     ? (o.initialRisky + o.monthlyRisky * o.years * 12) / alloc
     : 0;
-  $("allocNote").textContent =
-    `${pct(riskyShare, 0)} of the money you put in goes to the risky part, ` +
-    `${pct(1 - riskyShare, 0)} to the safer part.`;
+  $("allocNote").textContent = t("js.allocNote", {
+    risky: pct(riskyShare, 0),
+    safe: pct(1 - riskyShare, 0),
+  });
 
-  setStatus(
-    `${count(o.nPaths)} simulated journeys · ` +
-    `${lastWindows.length} real historical ${o.years}-year windows · ` +
-    `${(r.elapsedMs / 1000).toFixed(1)}s · seed ${o.seed} (same inputs always give the same answer)`
-  );
+  setStatus(t("js.status.summary", {
+    n: count(o.nPaths),
+    w: count(lastWindows.length),
+    years: o.years,
+    sec: num(r.elapsedMs / 1000, 1),
+    seed: o.seed,
+  }));
 }
 
 function setTile(id, value, note) {
@@ -566,18 +652,18 @@ function renderLegend(overlay) {
   const c = (name) => rootStyle.getPropertyValue(name).trim();
   const items = [];
   if ($("band99").checked) {
-    items.push(`<li><span class="key-rect" style="background:${c("--band-99")}"></span>99 out of 100 outcomes land in here</li>`);
+    items.push(`<li><span class="key-rect" style="background:${c("--band-99")}"></span>${t("js.legend.b99")}</li>`);
   }
   if ($("band95").checked) {
-    items.push(`<li><span class="key-rect" style="background:${c("--band-95")}"></span>95 out of 100</li>`);
+    items.push(`<li><span class="key-rect" style="background:${c("--band-95")}"></span>${t("js.legend.b95")}</li>`);
   }
   if ($("band50").checked) {
-    items.push(`<li><span class="key-rect" style="background:${c("--band-50")}"></span>50 out of 100 (the everyday range)</li>`);
+    items.push(`<li><span class="key-rect" style="background:${c("--band-50")}"></span>${t("js.legend.b50")}</li>`);
   }
-  items.push(`<li><span class="key-line" style="background:${c("--median")};height:3px"></span>Middle outcome</li>`);
-  items.push(`<li><span class="key-line" style="background:${c("--series-2")}"></span>Money you paid in</li>`);
+  items.push(`<li><span class="key-line" style="background:${c("--median")};height:3px"></span>${t("js.legend.median")}</li>`);
+  items.push(`<li><span class="key-line" style="background:${c("--series-2")}"></span>${t("js.legend.paidIn")}</li>`);
   if (overlay) {
-    items.push(`<li><span class="key-line" style="background:${c("--series-3")}"></span>${overlay.label} (what actually happened)</li>`);
+    items.push(`<li><span class="key-line" style="background:${c("--series-3")}"></span>${t("js.legend.overlay", { label: overlay.label })}</li>`);
   }
   $("fanLegend").innerHTML = items.join("");
 }
@@ -587,174 +673,136 @@ function renderTable() {
   if (!r) return;
   const v = projectResult(r);
   const overlay = pickOverlay(v);
+  const cols = ["year", "worst1", "worst5", "lowerEveryday", "middle",
+    "upperEveryday", "best5", "best1", "paidIn"];
   const head =
-    `<tr><th>Year</th><th>Worst 1 in 100</th><th>Worst 5 in 100</th>` +
-    `<th>Lower everyday</th><th>Middle</th><th>Upper everyday</th>` +
-    `<th>Best 5 in 100</th><th>Best 1 in 100</th><th>Paid in</th>` +
+    `<tr>${cols.map((k) => `<th>${t(`js.th.${k}`)}</th>`).join("")}` +
     (overlay ? `<th>${overlay.label}</th>` : "") +
     `</tr>`;
   const rows = [];
   for (let yr = 0; yr <= r.opts.years; yr++) {
-    const t = yr * 12;
+    const m = yr * 12;
     rows.push(
       `<tr><td>${yr}</td>` +
-      [1, 5, 25, 50, 75, 95, 99].map((p) => `<td>${euro(v.bands[p][t])}</td>`).join("") +
-      `<td>${euro(v.paidIn[t])}</td>` +
-      (overlay ? `<td>${euro(overlay.path[t])}</td>` : "") +
+      [1, 5, 25, 50, 75, 95, 99].map((p) => `<td>${euro(v.bands[p][m])}</td>`).join("") +
+      `<td>${euro(v.paidIn[m])}</td>` +
+      (overlay ? `<td>${euro(overlay.path[m])}</td>` : "") +
       `</tr>`
     );
   }
+  const unit = unitLabel();
   $("tableView").innerHTML =
-    `<div class="table-wrap"><table><caption class="skip">Portfolio value by year, in ${unitLabel()}</caption>` +
+    `<div class="table-wrap"><table><caption class="skip">${t("js.table.caption", { unit })}</caption>` +
     `<thead>${head}</thead><tbody>${rows.join("")}</tbody></table></div>` +
-    `<p class="sub" style="margin-top:10px">All figures in ${unitLabel()}. ` +
-    `"Everyday range" is the middle half of outcomes (25th to 75th out of 100).</p>`;
+    `<p class="sub" style="margin-top:10px">${t("js.table.footnote", { unit })}</p>`;
 }
 
-/* Rates read better without trailing zeros — 26%, 12.5%, 8.75% — except where a
-   fixed number of decimals is the conventional way to write them (0.20%). */
-const rate = (x, forceDigits = null) => {
-  if (forceDigits !== null) return `${(x * 100).toFixed(forceDigits)}%`;
-  const s = (x * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
-  return `${s}%`;
-};
-
 function renderTax(v, o) {
-  const t = v.tax;
-  const plan = t.plan;
+  // `tx` not `t`: the imported translator owns that name everywhere else.
+  const tx = v.tax;
+  const plan = tx.plan;
   const unit = unitLabel();
 
-  if (!t.enabled) {
-    $("taxIntro").textContent = plan.id === "gb_isa"
-      ? "Inside an ISA the tax authority takes nothing at all: no tax on the income, " +
-        "no tax on the gain, nothing yearly. Every figure on this page is what you keep."
-      : "No tax is being deducted, so every figure on this page is a before-tax figure. " +
-        "Pick Italy or the United Kingdom above to see what you would actually keep.";
-    setTile("tileTaxTotal", euro(0), "nothing is being deducted");
-    setTile("tileTaxYearly", euro(0), "nothing is being deducted");
-    setTile("tileTaxExit", euro(0), "nothing is being deducted");
-    setTile("tileTaxShare", "0%", "you keep the whole profit");
-    $("taxRules").innerHTML = plan.id === "gb_isa"
-      ? "<li>An ISA shelters everything inside it, so there is nothing to apply.</li>"
-      : "<li>No country selected, so no rule is being applied.</li>";
-    $("taxCallout").innerHTML = plan.id === "gb_isa"
-      ? "<strong>Worth knowing.</strong> This is the strongest argument for filling an " +
-        "ISA before an ordinary account: switch “Type of account” back and see how much " +
-        "the same plan hands over when it is not sheltered."
-      : "<strong>Try it.</strong> Choose a country above and every number on the page — " +
-        "the headline, the bands, the lowest point, the biggest fall — becomes the " +
-        "after-tax figure instead. The difference is usually larger than people expect.";
+  $("taxHint").textContent = tx.enabled ? planShort(plan) : t("js.pill.none");
+
+  if (!tx.enabled) {
+    const isa = plan.id === "gb_isa";
+    $("taxIntro").textContent = t(isa ? "js.tax.intro.isa" : "js.tax.intro.none");
+    setTile("tileTaxTotal", euro(0), t("js.tax.nothingDeducted"));
+    setTile("tileTaxYearly", euro(0), t("js.tax.nothingDeducted"));
+    setTile("tileTaxExit", euro(0), t("js.tax.nothingDeducted"));
+    setTile("tileTaxShare", pct(0, 0), t("js.tax.keepAll"));
+    $("taxRules").innerHTML = t(isa ? "js.tax.rules.isa" : "js.tax.rules.none");
+    $("taxCallout").innerHTML = t(isa ? "js.tax.callout.isa" : "js.tax.callout.none");
     return;
   }
 
-  const gross = t.grossGainAtMedian;
-  $("taxIntro").innerHTML =
-    `Under <b>${plan.label}</b>, on the middle journey. All amounts in ${unit}. ` +
-    `Every other figure on this page is already after this tax — the balance you could ` +
-    `sell for, minus the tax that selling would trigger.`;
+  const gross = tx.grossGainAtMedian;
+  $("taxIntro").innerHTML = t("js.tax.intro", { label: planLabel(plan), unit });
 
-  setTile(
-    "tileTaxTotal",
-    euro(t.total.p50),
-    `between ${euro(t.total.p5)} and ${euro(t.total.p95)} across the luckier and unluckier journeys`
-  );
+  setTile("tileTaxTotal", euro(tx.total.p50), t("js.tax.note.total", {
+    lo: euro(tx.total.p5),
+    hi: euro(tx.total.p95),
+  }));
   setTile(
     "tileTaxYearly",
-    euro(t.yearly.p50),
+    euro(tx.yearly.p50),
     plan.wealthRate > 0 || plan.taxesIncome
-      ? `charges you cannot avoid by holding on — ${euro(t.yearly.p5)} to ${euro(t.yearly.p95)}`
-      : "nothing is taken while you hold"
+      ? t("js.tax.note.yearly", { lo: euro(tx.yearly.p5), hi: euro(tx.yearly.p95) })
+      : t("js.tax.note.yearlyNone")
   );
-  setTile(
-    "tileTaxExit",
-    euro(t.exit.p50),
-    `the bill if you sold everything in the final month — ${euro(t.exit.p5)} to ${euro(t.exit.p95)}`
-  );
-  setTile(
-    "tileTaxShare",
-    pct(t.shareOfGainAtMedian, 1),
-    `of the ${euro(gross)} profit you made before tax`
-  );
+  setTile("tileTaxExit", euro(tx.exit.p50), t("js.tax.note.exit", {
+    lo: euro(tx.exit.p5),
+    hi: euro(tx.exit.p95),
+  }));
+  setTile("tileTaxShare", pct(tx.shareOfGainAtMedian, 1), t("js.tax.note.share", {
+    gross: euro(gross),
+  }));
 
   // ---- exactly which rules produced those numbers ----
   const rules = [];
   rules.push(
-    `<li><b>${rate(plan.equityExit)}</b> on the gain of the share part and ` +
-    `<b>${rate(plan.bondExit)}</b> on the gain of the bond part, charged when you sell.` +
-    (plan.equityExit !== plan.bondExit
-      ? " Government bonds get the gentler rate."
-      : "") +
-    `</li>`
+    "<li>" +
+    t("js.tax.rule.exit", {
+      eq: ratePct(plan.equityExit),
+      bd: ratePct(plan.bondExit),
+    }) +
+    (plan.equityExit !== plan.bondExit ? t("js.tax.rule.gentler") : "") +
+    "</li>"
   );
   if (plan.wealthRate > 0) {
-    const firstYear = (o.initialRisky + o.initialSafe) * plan.wealthRate;
-    rules.push(
-      `<li><b>${rate(plan.wealthRate, 2)}</b> a year on the whole balance, owed whether ` +
-      `you gained or lost — about ${euro(firstYear)} in the first year on your ` +
-      `${euro(o.initialRisky + o.initialSafe)} starting pot, and more as the pot grows.</li>`
-    );
+    const pot = o.initialRisky + o.initialSafe;
+    rules.push("<li>" + t("js.tax.rule.wealth", {
+      rate: ratePct(plan.wealthRate, 2),
+      first: euro(pot * plan.wealthRate),
+      pot: euro(pot),
+    }) + "</li>");
   } else {
-    rules.push(`<li>No yearly charge on the balance itself.</li>`);
+    rules.push("<li>" + t("js.tax.rule.noWealth") + "</li>");
   }
   if (plan.taxesIncome) {
     // Only mention an allowance that actually exists — the additional rate takes
     // the savings allowance away entirely, and "€0 free" reads like a bug.
     const allowances = [];
     if (plan.equityIncomeAllowance > 0) {
-      allowances.push(`${euro(plan.equityIncomeAllowance)} of share income`);
+      allowances.push(t("js.tax.rule.allowShare", { amount: euro(plan.equityIncomeAllowance) }));
     }
     if (plan.bondIncomeAllowance > 0) {
-      allowances.push(`${euro(plan.bondIncomeAllowance)} of bond income`);
+      allowances.push(t("js.tax.rule.allowBond", { amount: euro(plan.bondIncomeAllowance) }));
     }
-    rules.push(
-      `<li><b>${rate(plan.equityIncomeRate)}</b> a year on the dividends the share fund ` +
-      `earns and <b>${rate(plan.bondIncomeRate)}</b> a year on the interest the bond fund ` +
-      `earns` +
-      (allowances.length
-        ? `, with the first ${allowances.join(" and ")} free each year`
-        : ", with no tax-free amount at this income level") +
-      `. Assumed yields: ${rate(plan.equityYield, 1)} on shares, ` +
-      `${rate(plan.bondYield, 1)} on bonds.` +
-      (plan.id === "gb"
-        ? " In the UK this is owed even though the fund reinvests the money and you never see it."
-        : "") +
-      `</li>`
-    );
+    rules.push("<li>" + t("js.tax.rule.income", {
+      eqRate: ratePct(plan.equityIncomeRate),
+      bdRate: ratePct(plan.bondIncomeRate),
+      allowance: allowances.length
+        ? t("js.tax.rule.allowWith", { list: allowances.join(t("js.and")) })
+        : t("js.tax.rule.allowNone"),
+      eqYield: ratePct(plan.equityYield, 1),
+      bdYield: ratePct(plan.bondYield, 1),
+      uk: plan.id === "gb" ? t("js.tax.rule.uk") : "",
+    }) + "</li>");
   } else {
-    rules.push(
-      `<li>Nothing is taxed while you hold: the funds reinvest their income and ` +
-      `${plan.country} only taxes it when you finally sell. This is the single biggest ` +
-      `advantage of an accumulating ETF here.</li>`
-    );
+    rules.push("<li>" + t("js.tax.rule.noIncome", { country: planCountry(plan) }) + "</li>");
   }
   if (plan.exitAllowance > 0) {
-    rules.push(
-      `<li>The first <b>${euro(plan.exitAllowance)}</b> of gain in a tax year is free, ` +
-      `used against the more heavily taxed part first. It is a fixed cash amount, so ` +
-      `inflation shrinks it a little every year.</li>`
-    );
+    rules.push("<li>" + t("js.tax.rule.exitAllowance", {
+      amount: euro(plan.exitAllowance),
+    }) + "</li>");
   }
   rules.push(
-    plan.lossOffset
-      ? `<li>A loss on one fund <b>can</b> be set against a gain on the other.</li>`
-      : `<li>A loss on one fund <b>cannot</b> be set against a gain on the other: ` +
-        `${plan.country} files ETF gains and ETF losses in two separate buckets ` +
-        `(<em>redditi di capitale</em> and <em>redditi diversi</em>) that never meet.</li>`
+    "<li>" +
+    (plan.lossOffset
+      ? t("js.tax.rule.lossYes")
+      : t("js.tax.rule.lossNo", { country: planCountry(plan) })) +
+    "</li>"
   );
-  rules.push(
-    `<li>Tax is charged on the gain in plain euros, with no allowance for inflation — ` +
-    `so raising the inflation assumption raises the tax bill even though nothing real ` +
-    `has changed.</li>`
-  );
+  rules.push("<li>" + t("js.tax.rule.nominal") + "</li>");
   $("taxRules").innerHTML = rules.join("");
 
-  const share = t.shareOfGainAtMedian;
-  $("taxCallout").innerHTML =
-    `<strong>The tax costs you more than the tax.</strong> On the middle journey you ` +
-    `hand over ${euro(t.total.p50)}, which is ${pct(share, 0)} of the ${euro(gross)} ` +
-    `profit you made. But your final total drops by <em>more</em> than ${euro(t.total.p50)}: ` +
-    `every euro taken early is also a euro that can never grow again. Set the country to ` +
-    `“nowhere” and compare the headline to see the full cost.`;
+  $("taxCallout").innerHTML = t("js.tax.callout", {
+    total: euro(tx.total.p50),
+    share: pct(tx.shareOfGainAtMedian, 0),
+    gross: euro(gross),
+  });
 }
 
 function renderHistorical(v, overlay) {
@@ -765,7 +813,7 @@ function renderHistorical(v, overlay) {
     endYear: w.endYear,
     final: f ? w.final * f[f.length - 1] : w.final,
   }));
-  hist.update({ items, unitLabel: unitLabel() });
+  hist.update({ items, years: lastResult.opts.years, unitLabel: unitLabel() });
 
   const sorted = [...items].sort((a, b) => a.final - b.final);
   const worst = sorted[0];
@@ -773,26 +821,36 @@ function renderHistorical(v, overlay) {
   const med = sorted[Math.floor(sorted.length / 2)];
   const nBelow = items.filter((x) => x.final < v.totalPaidIn).length;
 
-  $("histSummary").innerHTML =
-    `Every one of the <b>${items.length}</b> real ${lastResult.opts.years}-year stretches between ` +
-    `${lastResult.era.start} and ${lastResult.era.end}, replayed with your exact plan. ` +
-    `The worst was <b>${worst.startYear}–${worst.endYear}</b> (${euro(worst.final)}), ` +
-    `the best <b>${best.startYear}–${best.endYear}</b> (${euro(best.final)}), ` +
-    `and the middle one <b>${med.startYear}–${med.endYear}</b> (${euro(med.final)}). ` +
-    `<b>${nBelow}</b> of them ended below the ${euro(v.totalPaidIn)} you would have paid in.`;
+  const span = (w) => `${w.startYear}–${w.endYear}`;
+  $("histSummary").innerHTML = t("js.hist.summary", {
+    n: items.length,
+    years: lastResult.opts.years,
+    from: lastResult.era.start,
+    to: lastResult.era.end,
+    worst: span(worst),
+    worstV: euro(worst.final),
+    best: span(best),
+    bestV: euro(best.final),
+    med: span(med),
+    medV: euro(med.final),
+    nBelow,
+    paidIn: euro(v.totalPaidIn),
+  });
 
   // populate the overlay picker once per era/horizon change
   const sel = $("overlay");
-  const wanted = `${lastResult.era.start}-${lastResult.era.end}-${lastResult.opts.years}`;
+  const wanted = `${lastResult.era.start}-${lastResult.era.end}-${lastResult.opts.years}-${getLang()}`;
   if (sel.dataset.built !== wanted) {
     const keep = sel.value;
     sel.innerHTML =
-      `<option value="none">none</option>` +
-      `<option value="worst">the worst one that really happened</option>` +
-      `<option value="median">the middle one</option>` +
-      `<option value="best">the best one that really happened</option>` +
+      `<option value="none">${t("js.overlay.none")}</option>` +
+      `<option value="worst">${t("js.overlay.worst")}</option>` +
+      `<option value="median">${t("js.overlay.median")}</option>` +
+      `<option value="best">${t("js.overlay.best")}</option>` +
       lastWindows
-        .map((w) => `<option value="${w.startYear}">starting in ${w.startYear} (${w.startYear}–${w.endYear})</option>`)
+        .map((w) => `<option value="${w.startYear}">${t("js.overlay.startingIn", {
+          y: w.startYear, a: w.startYear, b: w.endYear,
+        })}</option>`)
         .join("");
     sel.dataset.built = wanted;
     sel.value = [...sel.options].some((op) => op.value === keep) ? keep : "worst";
@@ -868,8 +926,6 @@ function fillDatasetFacts() {
 // --------------------------------------------------------------------- start
 
 boot().catch((err) => {
-  setStatus(`Something went wrong: ${err.message}`);
+  setStatus(t("js.status.crashed", { msg: err.message }));
   console.error(err);
 });
-
-void euroCompact;

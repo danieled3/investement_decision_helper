@@ -12,39 +12,9 @@
  * paid in, a real historical decade — take fixed categorical slots.
  */
 
+import { t, euro, euroCompact } from "./i18n.js";
+
 const SVG = "http://www.w3.org/2000/svg";
-
-// ------------------------------------------------------------------ formatting
-
-// A narrow no-break space as the thousands separator: unambiguous in every
-// locale, unlike "." or "," which mean opposite things across Europe.
-const THIN = " ";
-
-export function euro(x, decimals = 0) {
-  if (!Number.isFinite(x)) return "—";
-  const neg = x < 0;
-  const s = Math.abs(x)
-    .toFixed(decimals)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, THIN);
-  return (neg ? "−€" : "€") + s;
-}
-
-export function euroCompact(x) {
-  const a = Math.abs(x);
-  const sign = x < 0 ? "−" : "";
-  if (a >= 1e6) return `${sign}€${(a / 1e6).toFixed(a >= 1e7 ? 0 : 1)}M`;
-  if (a >= 1000) return `${sign}€${(a / 1000).toFixed(a >= 10000 ? 0 : 1)}k`;
-  return `${sign}€${Math.round(a)}`;
-}
-
-export function pct(x, decimals = 1) {
-  if (!Number.isFinite(x)) return "—";
-  return `${(x * 100).toFixed(decimals)}%`;
-}
-
-export function signedPct(x, decimals = 1) {
-  return (x >= 0 ? "+" : "−") + pct(Math.abs(x), decimals);
-}
 
 // ---------------------------------------------------------------- scale helper
 
@@ -174,7 +144,7 @@ export function createFanChart(root) {
     }
     el("text", {
       class: "axis-title", x: m.left + iw / 2, y: H - 6, "text-anchor": "middle",
-    }, gx).textContent = "years from today";
+    }, gx).textContent = t("js.chart.xTitle");
 
     // ---- bands, widest first so narrower ones sit on top
     const bandArea = (loKey, hiKey, fill) => {
@@ -270,8 +240,8 @@ export function createFanChart(root) {
       cross.setAttribute("opacity", 0.45);
 
       const series = [
-        { k: "Most likely (middle)", v: model.bands[50][idx], c: cssVar(root, "--median") },
-        { k: "Money you paid in", v: model.paidIn[idx], c: cssVar(root, "--series-2") },
+        { k: t("js.chart.median"), v: model.bands[50][idx], c: cssVar(root, "--median") },
+        { k: t("js.chart.paidIn"), v: model.paidIn[idx], c: cssVar(root, "--series-2") },
       ];
       if (model.overlay) {
         series.push({ k: model.overlay.label, v: model.overlay.path[idx], c: cssVar(root, "--series-3") });
@@ -285,15 +255,17 @@ export function createFanChart(root) {
       const yr = Math.floor(idx / 12);
       const mo = idx % 12;
       const when = idx === 0
-        ? "today"
-        : `year ${yr}${mo ? `, month ${mo}` : ""}`;
+        ? t("js.chart.today")
+        : mo
+          ? t("js.chart.yearMonth", { y: yr, m: mo })
+          : t("js.chart.year", { y: yr });
 
       let rows = "";
       if (model.showBands.p99) {
-        rows += `<div class="tt-row"><span class="tt-k"><span class="tt-line" style="background:${cssVar(root, "--band-99")};height:9px;border-radius:2px"></span>99% range</span><span class="tt-v">${euroCompact(model.bands[1][idx])} – ${euroCompact(model.bands[99][idx])}</span></div>`;
+        rows += `<div class="tt-row"><span class="tt-k"><span class="tt-line" style="background:${cssVar(root, "--band-99")};height:9px;border-radius:2px"></span>${t("js.chart.range99")}</span><span class="tt-v">${euroCompact(model.bands[1][idx])} – ${euroCompact(model.bands[99][idx])}</span></div>`;
       }
       if (model.showBands.p95) {
-        rows += `<div class="tt-row"><span class="tt-k"><span class="tt-line" style="background:${cssVar(root, "--band-95")};height:9px;border-radius:2px"></span>95% range</span><span class="tt-v">${euroCompact(model.bands[5][idx])} – ${euroCompact(model.bands[95][idx])}</span></div>`;
+        rows += `<div class="tt-row"><span class="tt-k"><span class="tt-line" style="background:${cssVar(root, "--band-95")};height:9px;border-radius:2px"></span>${t("js.chart.range95")}</span><span class="tt-v">${euroCompact(model.bands[5][idx])} – ${euroCompact(model.bands[95][idx])}</span></div>`;
       }
       for (const s of series) {
         rows += `<div class="tt-row"><span class="tt-k"><span class="tt-line" style="background:${s.c}"></span>${s.k}</span><span class="tt-v">${euro(s.v)}</span></div>`;
@@ -307,9 +279,12 @@ export function createFanChart(root) {
       tip.style.left = `${Math.max(2, left)}px`;
       tip.style.top = `${Math.max(2, m.top + 4)}px`;
 
-      live.textContent =
-        `${when}: middle ${euro(model.bands[50][idx])}, ` +
-        `99% range ${euro(model.bands[1][idx])} to ${euro(model.bands[99][idx])}.`;
+      live.textContent = t("js.chart.live", {
+        when,
+        med: euro(model.bands[50][idx]),
+        lo: euro(model.bands[1][idx]),
+        hi: euro(model.bands[99][idx]),
+      });
     }
 
     function hide() {
@@ -322,8 +297,8 @@ export function createFanChart(root) {
     const idxFromEvent = (ev) => {
       const r = svg.getBoundingClientRect();
       const px = ((ev.clientX - r.left) / r.width) * W;
-      const t = Math.round(((px - m.left) / iw) * months);
-      return Math.max(0, Math.min(months, t));
+      const i = Math.round(((px - m.left) / iw) * months);
+      return Math.max(0, Math.min(months, i));
     };
 
     hit.addEventListener("pointermove", (ev) => show(idxFromEvent(ev)));
@@ -332,11 +307,12 @@ export function createFanChart(root) {
 
     // keyboard access to the same readout
     svg.setAttribute("tabindex", "0");
-    svg.setAttribute("aria-label",
-      `Chart of portfolio value over ${yearsTotal} years. ` +
-      `Middle outcome ends at ${euro(model.bands[50][nPts - 1])}; ` +
-      `the 99% range is ${euro(model.bands[1][nPts - 1])} to ${euro(model.bands[99][nPts - 1])}. ` +
-      `Use left and right arrow keys to read values, or open the table view below.`);
+    svg.setAttribute("aria-label", t("js.chart.aria", {
+      years: yearsTotal,
+      med: euro(model.bands[50][nPts - 1]),
+      lo: euro(model.bands[1][nPts - 1]),
+      hi: euro(model.bands[99][nPts - 1]),
+    }));
     svg.onkeydown = (ev) => {
       const cur = hoverIdx === null ? months : hoverIdx;
       if (ev.key === "ArrowRight") { show(Math.min(months, cur + (ev.shiftKey ? 12 : 1))); ev.preventDefault(); }
@@ -363,7 +339,7 @@ export function createFanChart(root) {
  * Distribution of real historical outcomes. Bars are magnitude, so one hue.
  *
  * @param {HTMLElement} root
- * model = { items: [{startYear, endYear, final}], unitLabel }
+ * model = { items: [{startYear, endYear, final}], years, unitLabel }
  */
 export function createHistogram(root) {
   root.classList.add("chart-box");
@@ -409,13 +385,13 @@ export function createHistogram(root) {
     const bw = iw / nBins;
 
     const gGrid = el("g", {}, svg);
-    for (const t of ticks) {
+    for (const tv of ticks) {
       el("line", {
-        class: "gridline", x1: m.left, x2: m.left + iw, y1: y(t), y2: y(t),
+        class: "gridline", x1: m.left, x2: m.left + iw, y1: y(tv), y2: y(tv),
       }, gGrid);
       el("text", {
-        class: "tick-label", x: m.left - 8, y: y(t) + 4, "text-anchor": "end",
-      }, gGrid).textContent = t;
+        class: "tick-label", x: m.left - 8, y: y(tv) + 4, "text-anchor": "end",
+      }, gGrid).textContent = tv;
     }
 
     const fill = cssVar(root, "--series-1");
@@ -441,8 +417,8 @@ export function createHistogram(root) {
           .join(", ");
         tip.innerHTML =
           `<div class="tt-head">${euroCompact(b.lo)} – ${euroCompact(b.hi)}</div>` +
-          `<div class="tt-row"><span class="tt-k">Decades landing here</span><span class="tt-v">${c}</span></div>` +
-          `<div class="tt-row"><span class="tt-k" style="max-width:210px;white-space:normal">${names}${b.items.length > 6 ? ` +${b.items.length - 6} more` : ""}</span></div>`;
+          `<div class="tt-row"><span class="tt-k">${t("js.hist.tipCount")}</span><span class="tt-v">${c}</span></div>` +
+          `<div class="tt-row"><span class="tt-k" style="max-width:210px;white-space:normal">${names}${b.items.length > 6 ? t("js.hist.tipMore", { n: b.items.length - 6 }) : ""}</span></div>`;
         tip.classList.add("on");
         const tw = tip.offsetWidth || 200;
         let left = bx + bw / 2 - tw / 2;
@@ -467,11 +443,17 @@ export function createHistogram(root) {
     }
     el("text", {
       class: "axis-title", x: m.left + iw / 2, y: H - 6, "text-anchor": "middle",
-    }, svg).textContent = `value after the 10 years (${model.unitLabel})`;
+    }, svg).textContent = t("js.hist.xTitle", {
+      years: model.years,
+      unit: model.unitLabel,
+    });
 
-    svg.setAttribute("aria-label",
-      `Histogram of ${model.items.length} real historical decades. ` +
-      `Outcomes range from ${euro(lo)} to ${euro(hi)}.`);
+    svg.setAttribute("aria-label", t("js.hist.aria", {
+      n: model.items.length,
+      years: model.years,
+      lo: euro(lo),
+      hi: euro(hi),
+    }));
   }
 
   const ro = new ResizeObserver(() => render());

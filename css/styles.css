@@ -96,9 +96,9 @@ body {
 }
 
 .wrap {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 20px 96px;
+  padding: 22px 20px 96px;
 }
 
 /* ------------------------------------------------------------ typography */
@@ -120,14 +120,15 @@ h3 {
 }
 p { margin: 0 0 12px; }
 .lede {
-  font-size: 17px;
+  font-size: 16px;
   color: var(--text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  max-width: 82ch;
 }
 .sub {
   color: var(--text-secondary);
   font-size: 14px;
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
 .muted { color: var(--text-muted); }
 small { font-size: 13px; }
@@ -137,10 +138,23 @@ a { color: var(--series-1); text-decoration-thickness: 1px; text-underline-offse
 
 header.top {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 28px;
+  gap: 12px 16px;
+  margin-bottom: 16px;
+}
+/* The title block must be allowed to shrink, or the flex row squeezes the h1
+   into four words per line on a phone. */
+header.top > div:first-child {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+.top-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .card {
@@ -154,6 +168,26 @@ header.top {
 
 section { scroll-margin-top: 16px; }
 
+/* ------------------------------------------------- the first screen
+
+   Two columns: the plan on the left, the answer and the chart on the right, so
+   that changing an amount and seeing what it does needs no scrolling. Below
+   900px there is not enough width for a readable chart beside a form, so it
+   stacks — plan first, because you have to fill it in before it says anything. */
+
+.cockpit {
+  display: grid;
+  grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cockpit { grid-template-columns: 1fr; gap: 0; }
+}
+/* The two cards head the page together, so neither may scroll away from the
+   other on a tall screen; sticky would fight the chart's own height. */
+.cockpit > .card { margin-bottom: 20px; }
+
 /* ------------------------------------------------------------ controls */
 
 .sleeves {
@@ -164,6 +198,12 @@ section { scroll-margin-top: 16px; }
 @media (max-width: 720px) {
   .sleeves { grid-template-columns: 1fr; }
 }
+/* In the narrow left-hand column the two sleeves stack whatever the viewport is
+   doing, and the explanations get out of the way of the inputs. */
+.plan-col .sleeves { grid-template-columns: 1fr; gap: 12px; }
+.plan-col .sleeve { padding: 12px 12px 8px; }
+.plan-col .sleeve-note { font-size: 12.5px; line-height: 1.45; margin-bottom: 10px; }
+.plan-col > .row { grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
 
 .sleeve {
   border: 1px solid var(--border);
@@ -283,6 +323,50 @@ details.advanced summary {
   font-weight: 500;
 }
 
+/* ---------------------------------------------------- collapsed sections
+
+   Everything past "the answer" is a closed box: the reader who just wants the
+   six numbers is done, and the reader who wants the reasoning opens one. The
+   whole summary row is the hit target, so it gets card padding rather than the
+   card, and the body carries the padding when it is open. */
+
+details.card.box {
+  padding: 0;
+}
+details.card.box > summary {
+  cursor: pointer;
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  border-radius: var(--radius);
+}
+/* The page background, one step away from the card: enough to read as a
+   hoverable header in both themes without inventing another surface token. */
+details.card.box > summary:hover { background: var(--plane); }
+details.card.box > summary::marker { color: var(--text-muted); }
+details.card.box[open] > summary {
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.box-title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.box-body { padding: 20px; }
+.box-body > h2:first-child,
+.box-body > h3:first-child { margin-top: 0; }
+
+/* A quiet one-line preview of what is inside, so the closed state still says
+   something. Never carries information that is not repeated inside. */
+.hint {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .plan-summary {
   display: flex;
   flex-wrap: wrap;
@@ -304,37 +388,73 @@ details.advanced summary {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 12px 20px;
-  margin-bottom: 4px;
+  gap: 6px 16px;
+  margin-bottom: 0;
 }
 .hero {
-  font-size: 52px;
+  font-size: 46px;
   font-weight: 650;
   line-height: 1.05;
   letter-spacing: -0.03em;
 }
+/* The profit, beside the total rather than under it: the two are read together,
+   and the sign is the whole point — so it carries a colour as well as a "+". */
+.gain {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--success-text);
+}
+.gain.down { color: var(--critical); }
 .hero-label {
   font-size: 14px;
   color: var(--text-secondary);
 }
+.hero-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 2px 0 6px;
+}
+.hero-sub p.hero-label { margin: 0; }
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  margin-top: 18px;
+  margin-top: 14px;
 }
-/* The headline group has six tiles: four percentiles that belong on one row,
-   then two summary tiles. auto-fit would leave a hole, so lay it out by hand. */
-@media (min-width: 840px) {
-  .tiles.tiles-4-2 { grid-template-columns: repeat(4, 1fr); }
-  .tiles.tiles-4-2 > .tile:nth-child(5),
-  .tiles.tiles-4-2 > .tile:nth-child(6) { grid-column: span 2; }
+/* The answer card leads with three tiles — the bad end, the average, the good
+   end — and then a row of four. auto-fit would break those groupings at some
+   widths, so fix the columns once each row certainly fits. */
+@media (min-width: 620px) {
+  .tiles.tiles-3 { grid-template-columns: repeat(3, 1fr); }
 }
+/* Narrower than that the row falls to two columns, so the third tile takes the
+   whole second line rather than leaving an empty cell showing the gap colour. */
+@media (max-width: 619px) {
+  .tiles.tiles-3 .tile:last-child { grid-column: 1 / -1; }
+}
+@media (min-width: 660px) {
+  .tiles.tiles-4 { grid-template-columns: repeat(4, 1fr); }
+}
+/* The leading row is the answer to the question the page asks, so it is louder
+   than the supporting row underneath it. */
+.tiles.tiles-3 .v { font-size: 26px; }
+.tiles.tiles-4 { margin-top: 10px; }
+.tiles.tiles-4 .v { font-size: 20px; }
+.tiles.tiles-4 .tile { padding: 12px 14px; }
+/* Labels of different lengths would otherwise put the figures at different
+   heights across a row, which reads as though they were different kinds of
+   thing. Two lines of room for every label lines the numbers up. */
+.tiles.tiles-3 .k,
+.tiles.tiles-4 .k { min-height: 3.2em; }
 .tile {
   background: var(--surface-1);
   padding: 14px 16px;
@@ -552,6 +672,47 @@ footer.foot {
   border-radius: 6px;
   border: 1px solid var(--border);
   z-index: 10;
+}
+
+/* ------------------------------------------------------------ small screens
+
+   On a phone the whole first screen is 390×844 and the header used to eat all
+   of it, so the reader met a title and no tool. The controls go on top, the
+   title comes down to two lines, and the provenance line — which is repeated in
+   full in section 9 — steps aside. */
+
+@media (max-width: 700px) {
+  .wrap { padding: 14px 14px 72px; }
+  header.top {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    margin-bottom: 14px;
+  }
+  /* The column direction makes the flex-basis above a *height*, which opened a
+     340px void under the lede. In one column the title block needs no basis. */
+  header.top > div:first-child { flex: 0 1 auto; }
+  .top-controls { justify-content: space-between; }
+  h1 { font-size: 23px; margin-bottom: 6px; }
+  .lede { font-size: 15px; line-height: 1.45; }
+  header.top .sub { display: none; }
+  .card { padding: 16px; margin-bottom: 14px; }
+  .cockpit > .card { margin-bottom: 14px; }
+  .hero { font-size: 38px; }
+  .gain { font-size: 17px; }
+  /* One column means the answer sits under the plan, so the plan has to be
+     short enough that the reader still meets a number on the first screen. The
+     two sleeve explanations go first — section 3 says the same thing at
+     length — and the two amounts sit side by side, which halves each sleeve. */
+  .plan-col .sleeve-note { display: none; }
+  .plan-col .sleeve {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 12px;
+    /* One label wraps to two lines and the other does not, so align on the
+       bottom of each field: the two boxes to type in stay on one line. */
+    align-items: end;
+  }
+  .plan-col .sleeve-head { grid-column: 1 / -1; }
 }
 
 @media print {

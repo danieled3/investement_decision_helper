@@ -19,7 +19,17 @@ import {
   makeRng,
   DEFAULTS,
 } from "../js/engine.js";
-import { resolveTaxPlan, exitTaxNominal, incomeTaxNominal } from "../js/tax.js";
+import {
+  resolveTaxPlan,
+  exitTaxNominal,
+  incomeTaxNominal,
+  planLabel,
+  planShort,
+  planCountry,
+  describeTaxPlan,
+} from "../js/tax.js";
+import { STRINGS } from "../js/strings.js";
+import { setLang, num } from "../js/i18n.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const data = JSON.parse(readFileSync(join(HERE, "../data/returns.json"), "utf8"));
@@ -760,7 +770,11 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
     const mc = simulate(synth, opts);
     const hw = historicalWindows(synth, opts);
     check(
-      `Monte Carlo and historical replay agree — ${plan ? plan.label : "no tax"}`,
+      // The plan is a bag of numbers with no words in it — the words live in the
+      // dictionary now — so name the case from the selection that produced it.
+      `Monte Carlo and historical replay agree — ${
+        sel ? Object.values(sel).join(" ") : "no tax"
+      }`,
       rel(mc.final.p50, hw[0].final) < 1e-9,
       `${eur(mc.final.p50)} vs ${eur(hw[0].final)}`
     );
@@ -797,6 +811,156 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
     "UK allowances are converted from pounds into euros",
     Math.abs(resolveTaxPlan({ country: "gb", gbpEur: 1.2 }).exitAllowance - 3600) < 1e-9
   );
+}
+
+// =====================================================================
+console.log("\n12. TRANSLATIONS — the page must say the same thing in Italian");
+// =====================================================================
+{
+  const html = readFileSync(join(HERE, "../index.html"), "utf8");
+
+  // ---- the English of every marked block, taken out of the document itself.
+  // A regex cannot parse HTML in general, but it can find one element and count
+  // its own tag name to the matching close, which is all that is needed here.
+  const englishBlocks = new Map(); // key -> inner HTML
+  const marker = /<([a-zA-Z][\w-]*)\b[^>]*\bdata-i18n="([^"]+)"[^>]*>/g;
+  for (let m; (m = marker.exec(html)); ) {
+    const [openTag, tag, key] = m;
+    if (openTag.endsWith("/>")) {
+      englishBlocks.set(key, "");
+      continue;
+    }
+    const open = new RegExp(`<${tag}\\b`, "g");
+    const close = new RegExp(`</${tag}\\s*>`, "g");
+    let depth = 1;
+    let cursor = m.index + openTag.length;
+    const start = cursor;
+    while (depth > 0) {
+      open.lastIndex = cursor;
+      close.lastIndex = cursor;
+      const o = open.exec(html);
+      const c = close.exec(html);
+      if (!c) break;
+      if (o && o.index < c.index) {
+        depth++;
+        cursor = o.index + o[0].length;
+      } else {
+        depth--;
+        cursor = c.index + c[0].length;
+        if (depth === 0) englishBlocks.set(key, html.slice(start, c.index));
+      }
+    }
+  }
+
+  const keys = Object.keys(STRINGS);
+
+  const noItalian = keys.filter((k) => typeof STRINGS[k].it !== "string" || !STRINGS[k].it.trim());
+  check(
+    "every string in the dictionary has an Italian version",
+    noItalian.length === 0,
+    noItalian.length ? noItalian.slice(0, 5).join(", ") : `${keys.length} entries`
+  );
+
+  const untranslated = [...englishBlocks.keys()].filter((k) => !STRINGS[k]);
+  check(
+    "every data-i18n block in the page has a dictionary entry",
+    untranslated.length === 0,
+    untranslated.length
+      ? untranslated.slice(0, 5).join(", ")
+      : `${englishBlocks.size} blocks on the page`
+  );
+
+  // js.* strings are built in JavaScript and have no English in the HTML to fall
+  // back on, so they must carry their own.
+  const jsKeys = keys.filter((k) => k.startsWith("js."));
+  const noEnglish = jsKeys.filter((k) => typeof STRINGS[k].en !== "string" || !STRINGS[k].en.trim());
+  check(
+    "every JavaScript-built string carries its own English",
+    noEnglish.length === 0,
+    noEnglish.length ? noEnglish.slice(0, 5).join(", ") : `${jsKeys.length} entries`
+  );
+
+  const holes = (s) => new Set((s.match(/\{(\w+)\}/g) || []));
+  const sameHoles = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+  const badHoles = jsKeys.filter((k) => !sameHoles(holes(STRINGS[k].en), holes(STRINGS[k].it)));
+  check(
+    "the two languages fill the same placeholders",
+    badHoles.length === 0,
+    badHoles.length ? badHoles.slice(0, 5).join(", ") : `${jsKeys.length} entries checked`
+  );
+
+  // app.js fills numbers into <span id> holes inside translated prose, so a
+  // missing id in the Italian would silently blank a figure on the page.
+  const ids = (s) => new Set((s.match(/\bid="([^"]+)"/g) || []));
+  const lostIds = [];
+  for (const [key, english] of englishBlocks) {
+    const italian = STRINGS[key] && STRINGS[key].it;
+    if (!italian) continue;
+    const want = ids(english);
+    const got = ids(italian);
+    for (const id of want) if (!got.has(id)) lostIds.push(`${key}: ${id}`);
+  }
+  check(
+    "every id the English fills survives into the Italian",
+    lostIds.length === 0,
+    lostIds.length ? lostIds.slice(0, 5).join(", ") : "all ids match"
+  );
+
+  // ---- formatting, and the words that come out of tax.js. Both need the module
+  // to actually be in Italian, and setLang repaints the page, so stand up the
+  // smallest possible document for it.
+  const quiet = console.warn;
+  globalThis.document = {
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    documentElement: {},
+    title: "",
+  };
+  console.warn = () => {};
+  try {
+    setLang("it", { remember: false });
+    const itNum = num(1234.5, 1);
+    setLang("en", { remember: false });
+    const enNum = num(1234.5, 1);
+    check(
+      "Italian writes the decimal comma, and both languages group with a thin space",
+      /^1[  ]234,5$/.test(itNum) && /^1[  ]234\.5$/.test(enNum),
+      `${itNum} / ${enNum}`
+    );
+
+    const sels = [
+      { country: "it" },
+      { country: "it", fundType: "dist" },
+      { country: "gb", band: "higher" },
+      { country: "gb", wrapper: "isa" },
+      { country: "none" },
+    ];
+    const missing = [];
+    for (const lang of ["en", "it"]) {
+      setLang(lang, { remember: false });
+      for (const sel of sels) {
+        const plan = resolveTaxPlan(sel);
+        const words = [
+          planLabel(plan),
+          planShort(plan),
+          planCountry(plan),
+          describeTaxPlan(plan),
+        ];
+        for (const w of words) {
+          // t() returns the key itself when it cannot find the string
+          if (!w || w.startsWith("js.")) missing.push(`${lang} ${plan.id}: ${w}`);
+        }
+      }
+    }
+    check(
+      "every tax plan can be named and described in both languages",
+      missing.length === 0,
+      missing.length ? missing.slice(0, 5).join(", ") : `${sels.length * 2} plans named`
+    );
+  } finally {
+    console.warn = quiet;
+    delete globalThis.document;
+  }
 }
 
 // =====================================================================
