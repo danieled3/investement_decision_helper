@@ -17,6 +17,8 @@ import {
   prepareEra,
   percentileSorted,
   makeRng,
+  lockedYield,
+  currencyOf,
   DEFAULTS,
 } from "../js/engine.js";
 import {
@@ -1235,6 +1237,184 @@ console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian"
     console.warn = quiet;
     delete globalThis.document;
   }
+}
+
+// =====================================================================
+console.log("\n14. BONDS HELD TO MATURITY — yield locked, eroded only by inflation");
+// =====================================================================
+{
+  // A synthetic dataset with a held-to-maturity curve. Constant yield and a
+  // constant inflation discount make the sleeve deterministic: each year it
+  // earns (1 + yield) * discount - 1, whatever the maturity.
+  const y = 0.04;
+  const infl = 0.02;
+  const disc = 1 / (1 + infl);
+  const n = 30;
+  const synth = {
+    years: Array.from({ length: n }, (_, i) => 1900 + i),
+    equity_real: Array(n).fill(0.05),
+    bond_real: Array(n).fill(0.01), // ETF series — must NOT be what gets used
+    inflation: Array(n).fill(infl),
+    bond_hold: {
+      eur: {
+        yield_short: Array(n).fill(y),
+        yield_long: Array(n).fill(y),
+        infl_discount: Array(n).fill(disc),
+      },
+    },
+  };
+  const base = {
+    initialRisky: 0, initialSafe: 10000, monthlyRisky: 0, monthlySafe: 0,
+    years: 10, terRisky: 0, eraStart: 1900, eraEnd: 1929, nPaths: 100,
+    intraYear: false, tax: null,
+  };
+  const realReturn = (1 + y) * disc - 1; // ~1.96% real a year
+  for (const M of [1, 2, 5, 10]) {
+    const r = simulate(synth, { ...base, bondMaturity: M });
+    const expected = 10000 * Math.pow(1 + realReturn, 10);
+    check(
+      `held-to-maturity lump sum compounds at the locked real yield (M=${M})`,
+      rel(r.final.p50, expected) < 1e-9,
+      `${eur(r.final.p50)} vs ${eur(expected)}`
+    );
+  }
+  check(
+    "the held-to-maturity bond ignores the ETF total-return series entirely",
+    (() => {
+      // If it wrongly used bond_real (1%/yr) the pot would be smaller than the
+      // 1.96%-real held-to-maturity result by a wide margin.
+      const r = simulate(synth, { ...base, bondMaturity: 5 });
+      const wrong = 10000 * Math.pow(1 + ((1 + 0.01) * disc - 1), 10);
+      return r.final.p50 > wrong * 1.02;
+    })(),
+    "uses yields, not bond_real"
+  );
+}
+
+// ---- the yield you lock in is interpolated along the curve --------------
+{
+  const n = 20;
+  const synth = {
+    years: Array.from({ length: n }, (_, i) => 1900 + i),
+    equity_real: Array(n).fill(0.05),
+    bond_real: Array(n).fill(0.02),
+    inflation: Array(n).fill(0.02),
+    bond_hold: {
+      eur: {
+        yield_short: Array(n).fill(0.02),
+        yield_long: Array(n).fill(0.06),
+        infl_discount: Array(n).fill(1 / 1.02),
+      },
+    },
+  };
+  const era = prepareEra(synth, 1900, 1919, "eur");
+  check(
+    "a 10-year bond locks the long yield exactly",
+    Math.abs(lockedYield(era, 0, 10) - 0.06) < 1e-12
+  );
+  check(
+    "a very short bond sits at the short rate",
+    Math.abs(lockedYield(era, 0, 0.25) - 0.02) < 1e-12
+  );
+  // linear in maturity between 0.25y and 10y
+  const M = 5;
+  const expect = 0.02 + ((M - 0.25) / (10 - 0.25)) * (0.06 - 0.02);
+  check(
+    "an in-between maturity is interpolated linearly along the curve",
+    Math.abs(lockedYield(era, 0, M) - expect) < 1e-12,
+    `${(lockedYield(era, 0, M) * 100).toFixed(3)}% vs ${(expect * 100).toFixed(3)}%`
+  );
+}
+
+// ---- the currency, and therefore the bond, follows the tax country ------
+{
+  check(
+    "the UK plan buys sterling bonds",
+    currencyOf({}, resolveTaxPlan({ country: "gb" })) === "gbp"
+  );
+  check(
+    "Italy and no-tax buy euro bonds",
+    currencyOf({}, resolveTaxPlan({ country: "it" })) === "eur" &&
+      currencyOf({}, resolveTaxPlan({ country: "none" })) === "eur"
+  );
+  check(
+    "an explicit currency option overrides the country default",
+    currencyOf({ currency: "gbp" }, resolveTaxPlan({ country: "it" })) === "gbp"
+  );
+  // On the real dataset the two currencies hold genuinely different bonds, so an
+  // all-bond plan must come out differently.
+  const b = {
+    initialRisky: 0, initialSafe: 15000, monthlyRisky: 0, monthlySafe: 0,
+    years: 10, nPaths: 4000, seed: 11, tax: null,
+  };
+  const eu = simulate(data, { ...b, currency: "eur" });
+  const gb = simulate(data, { ...b, currency: "gbp" });
+  check(
+    "euro bonds and UK gilts give different outcomes",
+    rel(eu.final.p50, gb.final.p50) > 0.02,
+    `eur ${eur(eu.final.p50)} vs gbp ${eur(gb.final.p50)}`
+  );
+}
+
+// ---- the hyperinflation artifact is gone --------------------------------
+{
+  // Worst single-year held-to-maturity real return on the shipped euro curve.
+  // The wrong (aggregate) construction produced -100% in 1923; the per-country
+  // discount factor caps it far short of that.
+  const h = data.bond_hold.eur;
+  let worst = Infinity;
+  for (let i = 1; i < data.years.length; i++) {
+    const real = (1 + h.yield_long[i - 1]) * h.infl_discount[i] - 1;
+    if (real < worst) worst = real;
+  }
+  check(
+    "no year wipes out the euro bond in real terms (per-country discount, not aggregate)",
+    worst > -0.5,
+    `worst held-to-maturity year ${(worst * 100).toFixed(1)}%`
+  );
+}
+
+// ---- Monte Carlo and the historical replay still agree, with the curve --
+{
+  const n = 30;
+  const synth = {
+    years: Array.from({ length: n }, (_, i) => 1900 + i),
+    equity_real: Array.from({ length: n }, (_, i) => 0.04 + 0.02 * Math.sin(i)),
+    bond_real: Array(n).fill(0.0),
+    inflation: Array(n).fill(0.02),
+    bond_hold: {
+      eur: {
+        yield_short: Array.from({ length: n }, (_, i) => 0.02 + 0.001 * i),
+        yield_long: Array.from({ length: n }, (_, i) => 0.05 + 0.001 * i),
+        infl_discount: Array.from({ length: n }, (_, i) => 1 / (1 + 0.02 + 0.005 * Math.cos(i))),
+      },
+    },
+  };
+  const o = {
+    initialRisky: 5000, initialSafe: 5000, monthlyRisky: 100, monthlySafe: 100,
+    years: 10, terRisky: 0, eraStart: 1900, eraEnd: 1929, bondMaturity: 3,
+    nPaths: 40000, blockMean: 1e9, intraYear: false, seed: 7, tax: null,
+  };
+  // blockMean huge => the bootstrap almost never re-anchors, so each path is a
+  // contiguous run, the same object the historical replay walks.
+  const mc = simulate(synth, o);
+  const wins = historicalWindows(synth, o);
+  const mid = wins.map((w) => w.final).sort((a, b) => a - b);
+  const medHist = mid[Math.floor(mid.length / 2)];
+  check(
+    "held-to-maturity bonds: Monte Carlo median tracks the historical windows",
+    rel(mc.final.p50, medHist) < 0.03,
+    `MC ${eur(mc.final.p50)} vs replay ${eur(medHist)}`
+  );
+  check(
+    "changing the maturity actually changes the result",
+    (() => {
+      const m1 = simulate(synth, { ...o, bondMaturity: 1 }).final.p50;
+      const m10 = simulate(synth, { ...o, bondMaturity: 10 }).final.p50;
+      return rel(m1, m10) > 1e-4;
+    })(),
+    "maturity is wired through"
+  );
 }
 
 // =====================================================================
