@@ -627,8 +627,9 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
     initialRisky: 200000,
     tax: resolveTaxPlan({ country: "gb", band: "higher", equityYield: 0, bondYield: 0 }),
   });
-  // gain 20 000, less £3 000 x 1.15 = €3 450, at 24%
-  const expGb = 220000 - 0.24 * (20000 - 3000 * 1.15);
+  // gain 20 000, less the £3 000 tax-free amount (native pounds now — the UK runs
+  // in sterling, so there is no euro conversion), at 24%
+  const expGb = 220000 - 0.24 * (20000 - 3000);
   check(
     "UK higher rate: 24% on the gain above the tax-free amount",
     rel(gbBig.final.p50, expGb) < 1e-9,
@@ -790,7 +791,7 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
     "exit tax splits the two rates correctly",
     Math.abs(exitTaxNominal(11000, 10000, 5300, 5000, p) - (0.26 * 1000 + 0.125 * 300)) < 1e-9
   );
-  const pAllow = resolveTaxPlan({ country: "gb", band: "higher", gbpEur: 1 });
+  const pAllow = resolveTaxPlan({ country: "gb", band: "higher" });
   check(
     "the tax-free amount is used against the higher-taxed gain first",
     Math.abs(exitTaxNominal(14000, 10000, 5000, 5000, pAllow) - 0.24 * (4000 - 3000)) < 1e-9
@@ -808,8 +809,8 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
     resolveTaxPlan({ country: "gb", wrapper: "isa" }).enabled === false
   );
   check(
-    "UK allowances are converted from pounds into euros",
-    Math.abs(resolveTaxPlan({ country: "gb", gbpEur: 1.2 }).exitAllowance - 3600) < 1e-9
+    "UK allowances are the statutory pounds, no currency conversion",
+    resolveTaxPlan({ country: "gb" }).exitAllowance === 3000
   );
 }
 

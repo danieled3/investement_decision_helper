@@ -93,9 +93,25 @@ export function count(n) {
   return num(Math.round(n), 0);
 }
 
+// The money symbol follows the chosen country: euros for none/Italy, pounds for
+// the UK. It is a single module-level switch rather than a parameter on every
+// call, because a page is only ever in one currency at a time and the plumbing
+// otherwise reaches into hundreds of call sites.
+let currencySym = "€";
+
+/** Set the symbol every money figure is printed with ("€" or "£"). */
+export function setCurrency(sym) {
+  currencySym = sym || "€";
+}
+
+/** The symbol money is currently printed with. */
+export function currency() {
+  return currencySym;
+}
+
 export function euro(x, decimals = 0) {
   if (!Number.isFinite(x)) return "—";
-  return (x < 0 ? "−€" : "€") + num(Math.abs(x), decimals);
+  return (x < 0 ? "−" + currencySym : currencySym) + num(Math.abs(x), decimals);
 }
 
 /** Short form for axis ticks and end labels: €12k, €1.4M. */
@@ -103,9 +119,9 @@ export function euroCompact(x) {
   if (!Number.isFinite(x)) return "—";
   const a = Math.abs(x);
   const sign = x < 0 ? "−" : "";
-  if (a >= 1e6) return `${sign}€${num(a / 1e6, a >= 1e7 ? 0 : 1)}M`;
-  if (a >= 1000) return `${sign}€${num(a / 1000, a >= 10000 ? 0 : 1)}k`;
-  return `${sign}€${num(Math.round(a), 0)}`;
+  if (a >= 1e6) return `${sign}${currencySym}${num(a / 1e6, a >= 1e7 ? 0 : 1)}M`;
+  if (a >= 1000) return `${sign}${currencySym}${num(a / 1000, a >= 10000 ? 0 : 1)}k`;
+  return `${sign}${currencySym}${num(Math.round(a), 0)}`;
 }
 
 export function pct(x, decimals = 1) {

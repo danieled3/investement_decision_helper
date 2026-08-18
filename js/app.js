@@ -13,7 +13,7 @@ import { createFanChart, createHistogram } from "./chart.js";
 import { DEFAULTS } from "./engine.js";
 import {
   t, num, count, euro, pct, signedPct, ratePct,
-  initI18n, setLang, getLang, onLangChange,
+  initI18n, setLang, getLang, onLangChange, setCurrency, currency,
 } from "./i18n.js";
 import {
   REGIMES, TAX_DEFAULTS, resolveTaxPlan, describeTaxPlan,
@@ -44,10 +44,10 @@ const FIELDS = {
   monthlyRisky: "num",
   monthlySafe: "num",
   years: "int",
+  bondMaturity: "int",
   advisorOn: "bool",
   advisorFee: "pct",
   terRisky: "pct",
-  terSafe: "pct",
   inflation: "pct",
   era: "str",
   nPaths: "int",
@@ -61,7 +61,6 @@ const FIELDS = {
   equityYield: "pct",
   bondYield: "pct",
   wealthRate: "pct",
-  gbpEur: "num",
 };
 
 function readForm() {
@@ -81,7 +80,6 @@ function readForm() {
     equityYield: field("equityYield", 0, 10, 1.8) / 100,
     bondYield: field("bondYield", 0, 15, 3) / 100,
     wealthRate: field("wealthRate", 0, 3, 0.2) / 100,
-    gbpEur: field("gbpEur", 0.5, 3, 1.15),
   });
   return {
     tax,
@@ -90,11 +88,12 @@ function readForm() {
     monthlyRisky: field("monthlyRisky", 0, 1e7, 400),
     monthlySafe: field("monthlySafe", 0, 1e7, 100),
     years: Math.round(field("years", 1, 40, 10)),
+    // How long each government bond runs before it matures and is replaced.
+    bondMaturity: Math.round(field("bondMaturity", 1, 10, 10)),
     // The percentage stays in the box when the flag is cleared, so that unticking
     // and re-ticking does not lose it — but a cleared flag must mean zero.
     advisorFee: $("advisorOn").checked ? field("advisorFee", 0, 5, 1) / 100 : 0,
     terRisky: field("terRisky", 0, 5, 0.2) / 100,
-    terSafe: field("terSafe", 0, 5, 0.1) / 100,
     inflation: field("inflation", -5, 20, 2) / 100,
     eraStart,
     eraEnd,
@@ -114,6 +113,7 @@ function writeHash(o) {
   p.set("mr", o.monthlyRisky);
   p.set("ms", o.monthlySafe);
   p.set("y", o.years);
+  if (o.bondMaturity !== 10) p.set("bm", o.bondMaturity);
   p.set("e", `${o.eraStart}-${o.eraEnd}`);
   p.set("v", view);
   p.set("l", getLang());
@@ -141,6 +141,8 @@ function applyHash() {
   set("monthlySafe", "ms");
   set("inflation", "i");
   if (p.has("y")) $("years").value = p.get("y");
+  if (p.has("bm") && [...$("bondMaturity").options].some((o) => o.value === p.get("bm")))
+    $("bondMaturity").value = p.get("bm");
   // A shared link carries the fee, and the fee implies the flag: a link that
   // arrived with a percentage in it but the box unticked would show one thing and
   // simulate another. Zero, or anything unreadable, leaves the flag clear.
@@ -377,11 +379,11 @@ function wireControls() {
     $("monthlyRisky").value = 400;
     $("monthlySafe").value = 100;
     $("years").value = 10;
+    $("bondMaturity").value = "10";
     $("advisorOn").checked = false;
     $("advisorFee").value = 1;
     syncAdvisorFields();
     $("terRisky").value = 0.2;
-    $("terSafe").value = 0.1;
     $("inflation").value = 2;
     $("era").value = "1900-2025";
     $("nPaths").value = String(DEFAULTS.nPaths);
@@ -394,7 +396,6 @@ function wireControls() {
     $("taxBand").value = TAX_DEFAULTS.band;
     $("equityYield").value = String(TAX_DEFAULTS.equityYield * 100);
     $("bondYield").value = String(TAX_DEFAULTS.bondYield * 100);
-    $("gbpEur").value = String(TAX_DEFAULTS.gbpEur);
     syncTaxFields(true);
     run();
   });
@@ -419,6 +420,9 @@ function onLanguageChanged() {
   syncLangButtons();
   syncThemeLabel();
   $("toggleTable").textContent = t(showTable ? "js.table.hide" : "js.table.show");
+  // applyStatic has just repainted the euro wording of the country-named labels,
+  // so put the current country's back.
+  refreshCountryLabels($("taxCountry").value === "gb");
   if (DATA) fillDatasetFacts();
   const opts = readForm();
   updatePlanSummary(opts);
@@ -473,15 +477,48 @@ function syncTaxFields(countryChanged = false) {
   $("taxWrapperField").hidden = c !== "gb";
   $("taxBandField").hidden = c !== "gb" || isa;
   const advanced = c !== "none" && !isa;
-  for (const id of ["equityYield", "bondYield", "wealthRate", "gbpEur"]) {
+  for (const id of ["equityYield", "bondYield", "wealthRate"]) {
     $(id).closest(".field").hidden = !advanced;
   }
-  if (advanced) {
-    $("gbpEur").closest(".field").hidden = c !== "gb";
-  }
+  // The bond, and therefore the money, follows the country: sterling gilts for
+  // the UK, euro government bonds otherwise.
+  applyCurrency(c);
   if (countryChanged) {
     const r = REGIMES[c] || REGIMES.none;
     $("wealthRate").value = (r.wealthRate * 100).toFixed(2).replace(/\.?0+$/, "");
+  }
+}
+
+/**
+ * Switch the whole page between euros and pounds. Only the symbol and a handful
+ * of country-named labels change; the world-equity real return is the same in
+ * either currency, so the numbers themselves do not move for the equity sleeve.
+ */
+function applyCurrency(country) {
+  const gbp = country === "gb";
+  setCurrency(gbp ? "£" : "€");
+  document.documentElement.setAttribute("data-currency", gbp ? "gbp" : "eur");
+  // The little symbol in front of every money input.
+  for (const span of document.querySelectorAll(".euro-input > span")) {
+    span.textContent = currency();
+  }
+  refreshCountryLabels(gbp);
+  // Swapping the bond note back to euros restores its "−25.1%" placeholder, so
+  // the dataset facts have to be written into it again.
+  if (DATA) fillDatasetFacts();
+}
+
+/**
+ * Text that names the bond itself — euro government bonds vs UK gilts — depends
+ * on the country, not just the language. Each such element carries the two i18n
+ * keys; this resolves the right one through t() so it is translated too, and it
+ * re-runs on a language change because applyStatic would otherwise put the euro
+ * wording back.
+ */
+function refreshCountryLabels(gbp) {
+  for (const el of document.querySelectorAll("[data-i18n-eur]")) {
+    const key = el.getAttribute(gbp ? "data-i18n-gbp" : "data-i18n-eur");
+    el.innerHTML = t(key);
   }
 }
 

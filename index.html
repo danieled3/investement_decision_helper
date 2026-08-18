@@ -77,9 +77,12 @@
 
     <div class="sleeve">
       <div class="sleeve-head">
-        <span class="sleeve-title" data-i18n="sleeve.safe.title">Safer part — euro government bonds</span>
+        <span class="sleeve-title" data-i18n="sleeve.safe.title"
+              data-i18n-eur="sleeve.safe.title" data-i18n-gbp="sleeve.safe.title.gbp"
+              >Safer part — euro government bonds</span>
       </div>
-      <p class="sleeve-note" data-i18n="sleeve.safe.note">
+      <p class="sleeve-note" data-i18n="sleeve.safe.note"
+         data-i18n-eur="sleeve.safe.note" data-i18n-gbp="sleeve.safe.note.gbp">
         You lend money to euro-area governments and they pay you interest. Much
         steadier than shares in normal times — but it is not risk-free, as 2022
         showed (<span id="ds2022bd">−25.1%</span> after inflation, in one year).
@@ -111,7 +114,23 @@
         <option value="30" data-i18n="opt.years.30">30 years</option>
       </select>
     </div>
+    <div class="field" style="margin:0">
+      <label for="bondMaturity" data-i18n="field.bondMaturity">How long each bond runs</label>
+      <select id="bondMaturity">
+        <option value="1" data-i18n="opt.mat.1">1-year bonds</option>
+        <option value="2" data-i18n="opt.mat.2">2-year bonds</option>
+        <option value="3" data-i18n="opt.mat.3">3-year bonds</option>
+        <option value="5" data-i18n="opt.mat.5">5-year bonds</option>
+        <option value="10" selected data-i18n="opt.mat.10">10-year bonds</option>
+      </select>
+    </div>
   </div>
+  <p class="sleeve-note" id="bondMaturityNote" data-i18n="field.bondMaturity.note">
+    The bond is <strong>held to maturity</strong>: you lock in today's interest
+    rate, and when it matures the money buys another one at whatever rate is on
+    offer then. Held this way a bond has no price risk — the only thing that can
+    erode it is inflation.
+  </p>
 
   <!-- A consultant's fee is part of the plan, not a detail of the method, so it
        belongs here rather than behind the "advanced" heading — it changes the
@@ -209,10 +228,6 @@
         <input id="terRisky" type="number" min="0" max="5" step="0.01" value="0.2" inputmode="decimal">
       </div>
       <div class="field" style="margin:0">
-        <label for="terSafe" data-i18n="field.terSafe">Yearly fee on the bond ETF, %</label>
-        <input id="terSafe" type="number" min="0" max="5" step="0.01" value="0.1" inputmode="decimal">
-      </div>
-      <div class="field" style="margin:0">
         <label for="nPaths" data-i18n="field.nPaths">Number of simulated journeys</label>
         <select id="nPaths">
           <option value="20000" data-i18n="opt.nPaths.20000">20 000 — fastest</option>
@@ -261,10 +276,6 @@
       <div class="field" style="margin:0">
         <label for="wealthRate" data-i18n="field.wealthRate">Yearly tax on the balance itself, %</label>
         <input id="wealthRate" type="number" min="0" max="3" step="0.01" value="0.2" inputmode="decimal">
-      </div>
-      <div class="field" style="margin:0">
-        <label for="gbpEur" data-i18n="field.gbpEur">Pounds per euro, for the UK allowances</label>
-        <input id="gbpEur" type="number" min="0.5" max="3" step="0.01" value="1.15" inputmode="decimal">
       </div>
     </div>
     <p class="sub" style="margin-top:14px">

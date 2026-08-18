@@ -102,48 +102,106 @@ function stdev(xs) {
 
 /**
  * Slice the dataset down to the requested era and precompute what the
- * simulation needs. Returns log-return volatilities used by the Brownian
- * bridge and the correlation between the two sleeves.
+ * simulation needs.
+ *
+ * The equity sleeve is a world ETF and still swings within the year, so its
+ * log-return volatility is measured for the Brownian bridge. The bond sleeve is
+ * now a single government bond held to maturity — no price risk — so instead of
+ * a return series it needs the yield curve you can lock in (the short and 10-year
+ * points) and the inflation discount factor that erodes it. Those come from the
+ * `bond_hold` block for the requested currency ("eur" for none/Italy, "gbp" for
+ * the UK); everything else is the same for both.
  */
-export function prepareEra(data, eraStart, eraEnd) {
+export function prepareEra(data, eraStart, eraEnd, currency = "eur") {
+  const hold = (data.bond_hold && data.bond_hold[currency]) || null;
   const eq = [];
   const bd = [];
   const years = [];
+  const yShort = [];
+  const yLong = [];
+  const disc = [];
   for (let i = 0; i < data.years.length; i++) {
     const y = data.years[i];
     if (y < eraStart || y > eraEnd) continue;
     years.push(y);
     eq.push(data.equity_real[i]);
     bd.push(data.bond_real[i]);
+    if (hold) {
+      yShort.push(hold.yield_short[i]);
+      yLong.push(hold.yield_long[i]);
+      disc.push(hold.infl_discount[i]);
+    } else {
+      // No held-to-maturity curve in this dataset (the synthetic fixtures the
+      // test suite builds). Reproduce the plain bond_real return exactly: a zero
+      // locked yield times a discount of (1 + return) leaves the return itself,
+      // for any maturity, so those tests keep their old meaning.
+      yShort.push(0);
+      yLong.push(0);
+      disc.push(1 + data.bond_real[i]);
+    }
   }
   const eqLog = eq.map((r) => Math.log1p(r));
-  const bdLog = bd.map((r) => Math.log1p(r));
   const sdEq = stdev(eqLog);
-  const sdBd = stdev(bdLog);
 
-  // correlation of annual log returns, used for the intra-year bridge
   const n = eqLog.length;
   const mE = eqLog.reduce((a, b) => a + b, 0) / n;
-  const mB = bdLog.reduce((a, b) => a + b, 0) / n;
+
+  // The held-to-maturity real return each year is (1+yield)*discount-1. Measured
+  // here with the yield locked one year (a rolling bond) purely to report the
+  // sleeve's own average and volatility; the real simulation locks it for the
+  // whole maturity the user picks. Falls back to the ETF series if a build
+  // predates the bond_hold block.
+  const holdReal = hold
+    ? disc.map((d, i) => (1 + yLong[Math.max(0, i - 1)]) * d - 1)
+    : bd.slice();
+  const holdLog = holdReal.map((r) => Math.log1p(Math.max(-0.999999, r)));
+  const mB = holdLog.reduce((a, b) => a + b, 0) / n;
+
+  // Correlation between the equity return and the held-to-maturity bond return,
+  // still worth showing: it is why holding both smooths the ride.
+  const mEr = eq.reduce((a, b) => a + b, 0) / n;
+  const mBr = holdReal.reduce((a, b) => a + b, 0) / n;
   let cov = 0;
-  for (let i = 0; i < n; i++) cov += (eqLog[i] - mE) * (bdLog[i] - mB);
-  cov /= n - 1;
-  const rho = sdEq > 0 && sdBd > 0 ? cov / (sdEq * sdBd) : 0;
+  let vE = 0;
+  let vB = 0;
+  for (let i = 0; i < n; i++) {
+    const de = eq[i] - mEr;
+    const db = holdReal[i] - mBr;
+    cov += de * db;
+    vE += de * de;
+    vB += db * db;
+  }
+  const correlation = vE > 0 && vB > 0 ? cov / Math.sqrt(vE * vB) : 0;
 
   return {
     years,
     equity: Float64Array.from(eq),
-    bonds: Float64Array.from(bd),
+    bonds: Float64Array.from(bd), // ETF total return — historical tables only
+    // held-to-maturity bond inputs (empty if the dataset lacks the block)
+    yShort: Float64Array.from(yShort),
+    yLong: Float64Array.from(yLong),
+    disc: Float64Array.from(disc),
+    hasHold: !!hold,
     n,
-    // monthly log-return vol implied by the annual vol
+    // monthly log-return vol implied by the annual equity vol
     sigmaMonthlyEq: sdEq / Math.sqrt(12),
-    sigmaMonthlyBd: sdBd / Math.sqrt(12),
-    rho: Math.max(-0.99, Math.min(0.99, rho)),
     annualisedEq: Math.exp(mE) - 1,
-    annualisedBd: Math.exp(mB) - 1,
+    annualisedBond: Math.exp(mB) - 1,
     volEq: stdev(eq),
-    volBd: stdev(bd),
+    volBond: stdev(holdReal),
+    correlation,
   };
+}
+
+/**
+ * The yield on offer for a bond of maturity `M` years in the historical year at
+ * `idx`, interpolated linearly in maturity between the short (0.25y) and 10-year
+ * points of that year's curve. This is the number you lock in when you buy.
+ */
+export function lockedYield(era, idx, M) {
+  const m = Math.max(0.25, Math.min(10, M));
+  const frac = (m - 0.25) / (10 - 0.25);
+  return era.yShort[idx] + frac * (era.yLong[idx] - era.yShort[idx]);
 }
 
 // --------------------------------------------------------------- simulation
@@ -155,8 +213,10 @@ export const DEFAULTS = {
   monthlySafe: 100,
   years: 10,
   terRisky: 0.002, // 0.20% — typical world-equity ETF
-  terSafe: 0.001, // 0.10% — typical euro government bond ETF
+  terSafe: 0, // a directly-held bond has no fund fee; kept for compatibility
   advisorFee: 0, // fraction of the whole balance paid to a consultant each year
+  bondMaturity: 10, // years; the bond is held to maturity, then rolled into a new one
+  currency: null, // "eur" / "gbp"; null derives it from the tax country
   eraStart: 1900,
   eraEnd: 2025,
   inflation: 0.02, // ECB target, used only for the nominal view
@@ -166,6 +226,13 @@ export const DEFAULTS = {
   seed: 20260816,
   tax: null, // null / {country:"none"} = gross; see js/tax.js
 };
+
+/** The bond's currency (and therefore which government issues it) follows the
+ *  tax country: sterling gilts for the UK, euro government bonds otherwise. */
+export function currencyOf(o, plan) {
+  if (o.currency) return o.currency;
+  return plan && plan.id === "gb" ? "gbp" : "eur";
+}
 
 /**
  * Accept either an already-resolved plan or a raw selection, so callers and
@@ -185,15 +252,17 @@ function planOf(tax) {
  */
 export function simulate(data, optsIn = {}, onProgress) {
   const o = { ...DEFAULTS, ...optsIn };
-  const era = prepareEra(data, o.eraStart, o.eraEnd);
+  const plan = planOf(o.tax);
+  const currency = currencyOf(o, plan);
+  const era = prepareEra(data, o.eraStart, o.eraEnd, currency);
   if (era.n < o.years) {
     throw new Error(
       `Era ${o.eraStart}-${o.eraEnd} has only ${era.n} years of data, ` +
         `need at least ${o.years}.`
     );
   }
-
-  const plan = planOf(o.tax);
+  // Bond held to maturity: a whole number of years, never longer than the plan.
+  const bondM = Math.max(1, Math.min(o.years, Math.round(o.bondMaturity)));
   const nMonths = Math.round(o.years * 12);
   const nPts = nMonths + 1; // include month 0
   const nPaths = o.nPaths;
@@ -304,6 +373,7 @@ export function simulate(data, optsIn = {}, onProgress) {
 
     // pick the first year of the bootstrap
     let idx = Math.floor(rng() * era.n);
+    let locked = lockedYield(era, idx, bondM); // yield fixed for the bond's life
 
     for (let y = 0; y < o.years; y++) {
       if (y > 0) {
@@ -311,38 +381,35 @@ export function simulate(data, optsIn = {}, onProgress) {
         if (rng() < pNewBlock) idx = Math.floor(rng() * era.n);
         else idx = (idx + 1) % era.n;
       }
+      // The bond matures every `bondM` years; buy the next one at the yield on
+      // offer in the year we happen to have landed on, and hold it again.
+      if (y % bondM === 0) locked = lockedYield(era, idx, bondM);
 
       const rEq = netOfCosts(era.equity[idx], o.terRisky);
-      const rBd = netOfCosts(era.bonds[idx], o.terSafe);
       const logEq = Math.log1p(Math.max(-0.999999, rEq));
+      // Held to maturity there is no price swing: the year's real return is the
+      // locked coupon yield eroded by that year's inflation, spread smoothly
+      // across the twelve months.
+      const rBd = (1 + locked) * era.disc[idx] - 1;
       const logBd = Math.log1p(Math.max(-0.999999, rBd));
+      const stepB = logBd / 12;
 
-      // ---- build the twelve monthly log returns for this year ----
+      // ---- build the twelve monthly steps: equity swings, bond is smooth ----
       if (o.intraYear) {
         let sumE = 0;
-        let sumB = 0;
         for (let m = 0; m < 12; m++) {
-          const z1 = normal();
-          const z2 = normal();
-          const e = z1 * era.sigmaMonthlyEq;
-          const b =
-            (era.rho * z1 + Math.sqrt(1 - era.rho * era.rho) * z2) *
-            era.sigmaMonthlyBd;
+          const e = normal() * era.sigmaMonthlyEq;
           bridgeEq[m] = e;
-          bridgeBd[m] = b;
           sumE += e;
-          sumB += b;
         }
-        // pin each sleeve's twelve steps to sum exactly to the annual return
+        // pin equity's twelve steps to sum exactly to the annual return
         const adjE = sumE / 12;
-        const adjB = sumB / 12;
         for (let m = 0; m < 12; m++) {
           bridgeEq[m] = logEq / 12 + (bridgeEq[m] - adjE);
-          bridgeBd[m] = logBd / 12 + (bridgeBd[m] - adjB);
+          bridgeBd[m] = stepB;
         }
       } else {
         const stepE = logEq / 12;
-        const stepB = logBd / 12;
         for (let m = 0; m < 12; m++) {
           bridgeEq[m] = stepE;
           bridgeBd[m] = stepB;
@@ -682,10 +749,16 @@ export function simulate(data, optsIn = {}, onProgress) {
       end: o.eraEnd,
       nYears: era.n,
       equityCagr: era.annualisedEq,
-      bondCagr: era.annualisedBd,
+      bondCagr: era.annualisedBond,
       equityVol: era.volEq,
-      bondVol: era.volBd,
-      correlation: era.rho,
+      bondVol: era.volBond,
+      correlation: era.correlation,
+    },
+    bond: {
+      currency,
+      maturity: bondM,
+      // the yield you would lock in today for that maturity, in this era
+      yieldNow: lockedYield(era, era.n - 1, bondM),
     },
   };
 }
@@ -700,7 +773,9 @@ export function simulate(data, optsIn = {}, onProgress) {
 export function historicalWindows(data, optsIn = {}) {
   const o = { ...DEFAULTS, ...optsIn };
   const plan = planOf(o.tax);
-  const era = prepareEra(data, o.eraStart, o.eraEnd);
+  const currency = currencyOf(o, plan);
+  const era = prepareEra(data, o.eraStart, o.eraEnd, currency);
+  const bondM = Math.max(1, Math.min(o.years, Math.round(o.bondMaturity)));
   const out = [];
   const nMonths = Math.round(o.years * 12);
 
@@ -733,9 +808,12 @@ export function historicalWindows(data, optsIn = {}) {
     let peak = path[0];
     let dd = 0;
 
+    let locked = lockedYield(era, s, bondM);
     for (let y = 0; y < o.years; y++) {
-      const rEq = netOfCosts(era.equity[s + y], o.terRisky);
-      const rBd = netOfCosts(era.bonds[s + y], o.terSafe);
+      const idx = s + y;
+      if (y % bondM === 0) locked = lockedYield(era, idx, bondM);
+      const rEq = netOfCosts(era.equity[idx], o.terRisky);
+      const rBd = (1 + locked) * era.disc[idx] - 1; // held to maturity: no price risk
       const stepE = Math.pow(1 + Math.max(-0.999999, rEq), 1 / 12);
       const stepB = Math.pow(1 + Math.max(-0.999999, rBd), 1 / 12);
       for (let m = 0; m < 12; m++) {

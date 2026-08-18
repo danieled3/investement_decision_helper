@@ -142,7 +142,6 @@ export const TAX_DEFAULTS = {
   fundType: "acc", // "acc" | "dist" (matters in Italy)
   equityYield: 0.018, // dividend yield of a world share ETF
   bondYield: 0.03, // running yield of a euro government bond ETF
-  gbpEur: 1.15, // used only to express the UK allowances in euros
   wealthRate: null, // null = use the country default
 };
 
@@ -179,8 +178,9 @@ export function resolveTaxPlan(sel = {}) {
   const band = base.bands ? base.bands[s.band] || base.bands.basic : null;
   const r = { ...base, ...(band || {}) };
 
-  // allowances are statutory pounds for the UK; convert once, here
-  const fx = base.allowanceCurrency === "gbp" ? Math.max(0.1, s.gbpEur) : 1;
+  // The UK now runs natively in pounds — contributions, balances and these
+  // statutory allowances are all sterling — so there is no currency to convert.
+  const fx = 1;
 
   // In Italy an accumulating ETF is not touched until you sell; a distributing
   // one is taxed on every payout as it lands.

@@ -61,6 +61,21 @@ export const STRINGS = {
       rischio, come ha mostrato il 2022 (<span id="ds2022bd">−25,1%</span> al
       netto dell'inflazione, in un solo anno).`,
   },
+  // Shown instead of the two above when the tax country is the UK: the bond is a
+  // gilt, in pounds.
+  "sleeve.safe.title.gbp": {
+    en: "Safer part — UK government bonds (gilts)",
+    it: "Parte più sicura — titoli di Stato britannici (gilt)",
+  },
+  "sleeve.safe.note.gbp": {
+    en: `You lend money to the UK government and it pays you interest. Much
+      steadier than shares in normal times — but not risk-free: 2022 was brutal
+      for gilts, and the 1970s were worse once inflation is counted.`,
+    it: `Presti denaro al governo britannico e ti paga un interesse. Molto più
+      tranquilla delle azioni in tempi normali — ma non priva di rischio: il 2022
+      è stato durissimo per i gilt, e gli anni '70 peggio ancora al netto
+      dell'inflazione.`,
+  },
 
   "field.initial": { it: "Quanto metti oggi" },
   "field.monthly": { it: "Quanto aggiungi ogni mese" },
@@ -71,6 +86,18 @@ export const STRINGS = {
   "opt.years.20": { it: "20 anni" },
   "opt.years.25": { it: "25 anni" },
   "opt.years.30": { it: "30 anni" },
+  "field.bondMaturity": { it: "Durata di ogni obbligazione" },
+  "opt.mat.1": { it: "obbligazioni a 1 anno" },
+  "opt.mat.2": { it: "obbligazioni a 2 anni" },
+  "opt.mat.3": { it: "obbligazioni a 3 anni" },
+  "opt.mat.5": { it: "obbligazioni a 5 anni" },
+  "opt.mat.10": { it: "obbligazioni a 10 anni" },
+  "field.bondMaturity.note": {
+    it: `L'obbligazione è <strong>tenuta fino a scadenza</strong>: blocchi il
+      tasso di interesse di oggi, e quando scade il denaro ne compra un'altra al
+      tasso disponibile allora. Tenuta così, un'obbligazione non ha rischio di
+      prezzo — l'unica cosa che può eroderla è l'inflazione.`,
+  },
 
   "field.advisor.check": { it: "Pago un consulente finanziario" },
   "field.advisorFee": { it: "Il suo compenso, % all'anno su tutto quello che hai" },
@@ -112,7 +139,6 @@ export const STRINGS = {
   "opt.era.1970": { it: "1970–2025 — mercati moderni" },
   "opt.era.1990": { it: "1990–2025 — solo anni recenti" },
   "field.terRisky": { it: "Costo annuo dell'ETF azionario, %" },
-  "field.terSafe": { it: "Costo annuo dell'ETF obbligazionario, %" },
   "field.nPaths": { it: "Numero di percorsi simulati" },
   "opt.nPaths.20000": { it: "20 000 — il più veloce" },
   "opt.nPaths.100000": { it: "100 000 — consigliato" },
@@ -134,7 +160,6 @@ export const STRINGS = {
   "field.equityYield": { it: "Dividendo dell'ETF azionario, % all'anno" },
   "field.bondYield": { it: "Cedola dell'ETF obbligazionario, % all'anno" },
   "field.wealthRate": { it: "Imposta annua sul patrimonio investito, %" },
-  "field.gbpEur": { it: "Sterline per euro, per le franchigie britanniche" },
   "adv.reset": { it: "Riporta tutto ai valori predefiniti" },
 
   // ================================================================ the answer
