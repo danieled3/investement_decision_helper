@@ -338,16 +338,20 @@ export const STRINGS = {
       <b id="dsEquityWorst">−40%</b>.`,
   },
   "how.choice.bonds": {
-    it: `<strong>Obbligazioni governative in euro</strong> significa prestare denaro a
-      governi come Germania, Francia, Italia e Spagna, che ti pagano un interesse.
-      In un anno normale questa parte si muove appena. Ma le obbligazioni non sono
-      una cassaforte: perdono valore quando i tassi salgono, e l'inflazione le
-      consuma in silenzio. Su tutto il periodo dal
-      <span id="dsRange3">1900</span> le obbligazioni governative dell'area euro
-      hanno reso <b id="dsBondCagr">−0,9%</b> all'anno <em>al netto</em>
-      dell'inflazione: le due guerre mondiali hanno distrutto gli obbligazionisti
-      due volte. Il loro anno peggiore qui è stato il
-      <b id="dsBondWorstYear">1923</b>, con <b id="dsBondWorst">−40%</b>.`,
+    it: `<strong>Titoli di Stato</strong> significa prestare denaro a un governo, che
+      ti paga un interesse e ti restituisce il capitale alla fine. Questa app compra
+      <em>una</em> obbligazione e la <strong>tiene fino a scadenza</strong>: così, a
+      differenza di un fondo obbligazionario, non la vende mai in perdita quando i
+      tassi salgono — incassi l'interesse promesso e riprendi il capitale. Scegli tu
+      quanto dura ogni obbligazione; a scadenza il denaro ne compra un'altra al tasso
+      disponibile allora. L'unica cosa che può ancora farti male è
+      l'<strong>inflazione</strong>, che erode in silenzio un pagamento fisso. Su
+      tutto il periodo dal <span id="dsRange3">1900</span> un'obbligazione dell'area
+      euro tenuta così ha reso <b id="dsBondCagr">−0,9%</b> all'anno <em>al netto</em>
+      dell'inflazione: le due guerre mondiali e l'iperinflazione del
+      <b id="dsBondWorstYear">1923</b> hanno distrutto gli obbligazionisti in termini
+      reali anche se ogni obbligazione è stata rimborsata per intero. (Scegli il Regno
+      Unito e presti invece al governo britannico, in sterline.)`,
   },
   "how.choice.why": {
     it: `<strong>E allora perché tenere obbligazioni?</strong> Perché di solito salgono
