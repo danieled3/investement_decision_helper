@@ -2,7 +2,7 @@
  * UI controller: reads the form, runs the simulation in a worker, renders the
  * chart, the tiles and the table.
  *
- * The engine works in real terms — "today's money" on the page. The nominal view
+ * The engine works in real terms — "today's buying power" on the page. The nominal view
  * the page opens in, "future euros", is produced by scaling the percentile bands
  * with the cumulative inflation factor (exact, because scaling by a positive
  * deterministic factor preserves percentile order) and by reading the

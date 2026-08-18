@@ -99,7 +99,7 @@ export const STRINGS = {
   "opt.band.additional": { it: "Aliquota massima — oltre £125.140" },
 
   "field.view": { it: "Mostra gli importi in" },
-  "opt.view.real": { it: "Soldi di oggi" },
+  "opt.view.real": { it: "Potere d'acquisto di oggi" },
   "opt.view.nominal": { it: "Euro futuri" },
   "field.inflation": { it: "Inflazione ipotizzata, % all'anno" },
 
@@ -301,7 +301,7 @@ export const STRINGS = {
       proprio perché anni come quello restino possibili.`,
   },
 
-  "how.units.title": { it: "“Euro futuri” contro “soldi di oggi”" },
+  "how.units.title": { it: "“Euro futuri” contro “potere d'acquisto di oggi”" },
   "how.units.p1": {
     it: `€100 fra dieci anni non compreranno quello che comprano €100 adesso. Perciò lo
       stesso risultato si può scrivere come due cifre diverse, e l'interruttore
@@ -315,7 +315,7 @@ export const STRINGS = {
         saliti anche i prezzi.
       </li>
       <li>
-        <strong>Soldi di oggi</strong> quella salita la toglie di nuovo. Se dice
+        <strong>Potere d'acquisto di oggi</strong> quella salita la toglie di nuovo. Se dice
         €102 000, significa <em>tanta spesa quanta ne fai oggi con €102 000</em>. È la
         cifra più piccola e più severa, ed è quella che i dati storici ci danno
         direttamente: tutto è simulato così e poi convertito.
@@ -521,7 +521,7 @@ export const STRINGS = {
     <dd>Un prestito a un governo. Consegni del denaro, ricevi interessi e alla fine ti restituiscono il capitale. Più sicuro delle azioni, perché i governi raramente non pagano — ma il prezzo di mercato di un titolo già emesso scende quando i nuovi titoli iniziano a offrire interessi più alti.</dd>
 
     <dt>Rendimento reale (“al netto dell'inflazione”)</dt>
-    <dd>Quanto in più puoi davvero comprare. Se i tuoi soldi crescono del 5% ma i prezzi salgono del 2%, il tuo rendimento reale è circa il 3%. Tutta la simulazione gira in termini reali: porta l'interruttore su “soldi di oggi” e ogni cifra della pagina è una cifra reale.</dd>
+    <dd>Quanto in più puoi davvero comprare. Se i tuoi soldi crescono del 5% ma i prezzi salgono del 2%, il tuo rendimento reale è circa il 3%. Tutta la simulazione gira in termini reali: porta l'interruttore su “potere d'acquisto di oggi” e ogni cifra della pagina è una cifra reale.</dd>
 
     <dt>Rendimento totale</dt>
     <dd>Variazione di prezzo <em>più</em> i dividendi e gli interessi ricevuti, ipotizzando di averli reinvestiti. Ignorare i dividendi sottostimerebbe il rendimento delle azioni di circa il 2–4% all'anno, quindi non lo facciamo mai.</dd>
@@ -713,9 +713,9 @@ export const STRINGS = {
   },
 
   "js.years": { en: "{n} years", it: "{n} anni" },
-  "js.unit.real": { en: "today's money", it: "soldi di oggi" },
+  "js.unit.real": { en: "today's buying power", it: "potere d'acquisto di oggi" },
   "js.unit.nominal": { en: "future euros", it: "euro futuri" },
-  /* Two words on a button cannot carry the difference between a nominal and a
+  /* Even a named unit cannot carry the whole difference between a nominal and a
      real amount, so the selected one is spelled out underneath in a sentence. */
   "js.view.note.nominal": {
     en: "The number you would see on a statement in {years} years. Inflation is left in, so it looks bigger — {infl} a year is assumed.",

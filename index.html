@@ -115,15 +115,15 @@
 
   <!-- The unit belongs on the first screen: it changes what every figure on the
        right means, and it is the one thing a reader is most likely to want to
-       switch. Two words cannot carry the difference on their own, so #viewNote
-       spells out the selected one in a sentence. The inflation assumption is
-       only shown while it is being used. -->
+       switch. A label alone cannot carry the difference, so #viewNote spells out
+       the selected one in a sentence. The inflation assumption is only shown
+       while it is being used. -->
   <div class="row">
     <div class="field" style="margin:0">
       <label id="viewLabel" data-i18n="field.view">Show amounts in</label>
       <div class="toggle-group" role="group" aria-labelledby="viewLabel">
         <button id="viewNominal" type="button" aria-pressed="true" data-i18n="opt.view.nominal">Future euros</button>
-        <button id="viewReal" type="button" aria-pressed="false" data-i18n="opt.view.real">Today's money</button>
+        <button id="viewReal" type="button" aria-pressed="false" data-i18n="opt.view.real">Today's buying power</button>
       </div>
     </div>
     <div class="field" id="inflationField" style="margin:0">
@@ -503,7 +503,7 @@
     that years like that stay possible.
   </div>
 
-  <h3 data-i18n="how.units.title">“Future euros” versus “today's money”</h3>
+  <h3 data-i18n="how.units.title">“Future euros” versus “today's buying power”</h3>
   <p data-i18n="how.units.p1">
     €100 in ten years will not buy what €100 buys now. So the same outcome can be
     written as two different amounts, and the toggle next to your plan switches
@@ -517,8 +517,8 @@
       with it.
     </li>
     <li>
-      <strong>Today's money</strong> takes that rise back out again. If it says
-      €102 000, it means <em>as much shopping as €102 000 buys you today</em>. It is
+      <strong>Today's buying power</strong> takes that rise back out again. If it
+      says €102 000, it means <em>as much shopping as €102 000 buys you today</em>. It is
       the smaller and more sobering figure, and it is the one the historical data
       gives us directly: everything is simulated in it and then converted.
     </li>
@@ -711,7 +711,7 @@
     <dd>A loan to a government. You hand over money, receive interest, and get the money back at the end. Safer than shares, because governments rarely fail to pay — but the market price of an existing bond falls when new bonds start offering higher interest.</dd>
 
     <dt>Real return (“after inflation”)</dt>
-    <dd>How much more you can actually buy. If your money grows 5% but prices rise 2%, your real return is about 3%. The whole simulation is run in real terms; switch the toggle to “today's money” and every figure on the page is a real one.</dd>
+    <dd>How much more you can actually buy. If your money grows 5% but prices rise 2%, your real return is about 3%. The whole simulation is run in real terms; switch the toggle to “today's buying power” and every figure on the page is a real one.</dd>
 
     <dt>Total return</dt>
     <dd>Price change <em>plus</em> the dividends and interest you received, assuming you reinvested them. Ignoring dividends would understate share returns by roughly 2–4% a year — so we never do.</dd>
