@@ -115,20 +115,23 @@
 
   <!-- The unit belongs on the first screen: it changes what every figure on the
        right means, and it is the one thing a reader is most likely to want to
-       switch. The inflation assumption only appears once it matters. -->
+       switch. Two words cannot carry the difference on their own, so #viewNote
+       spells out the selected one in a sentence. The inflation assumption is
+       only shown while it is being used. -->
   <div class="row">
     <div class="field" style="margin:0">
       <label id="viewLabel" data-i18n="field.view">Show amounts in</label>
       <div class="toggle-group" role="group" aria-labelledby="viewLabel">
-        <button id="viewReal" type="button" aria-pressed="true" data-i18n="opt.view.real">Today's euros</button>
-        <button id="viewNominal" type="button" aria-pressed="false" data-i18n="opt.view.nominal">Euros of the day</button>
+        <button id="viewNominal" type="button" aria-pressed="true" data-i18n="opt.view.nominal">Future euros</button>
+        <button id="viewReal" type="button" aria-pressed="false" data-i18n="opt.view.real">Today's money</button>
       </div>
     </div>
-    <div class="field" id="inflationField" style="margin:0" hidden>
+    <div class="field" id="inflationField" style="margin:0">
       <label for="inflation" data-i18n="field.inflation">Assumed inflation, % per year</label>
       <input id="inflation" type="number" min="-5" max="20" step="0.1" value="2" inputmode="decimal">
     </div>
   </div>
+  <p class="sub view-note" id="viewNote"></p>
 
   <p class="plan-summary" id="planSummary">
     <span data-i18n="plan.sum.start">You start with <b id="sumStart">€15 000</b></span>
@@ -264,7 +267,7 @@
   </div>
   <div class="hero-sub">
     <p class="hero-label" data-i18n="res.heroLabel">
-      most likely, in <span id="heroUnit">today's euros</span>
+      most likely, in <span id="heroUnit">future euros</span>
     </p>
     <span class="pill" id="taxPill">—</span>
   </div>
@@ -500,31 +503,33 @@
     that years like that stay possible.
   </div>
 
-  <h3 data-i18n="how.units.title">“Today's euros” versus “euros of the day”</h3>
+  <h3 data-i18n="how.units.title">“Future euros” versus “today's money”</h3>
   <p data-i18n="how.units.p1">
-    €100 in ten years will not buy what €100 buys now. There are two honest ways to
-    talk about this, and the toggle next to your plan switches between them:
+    €100 in ten years will not buy what €100 buys now. So the same outcome can be
+    written as two different amounts, and the toggle next to your plan switches
+    between them:
   </p>
   <ul data-i18n="how.units.list">
     <li>
-      <strong>Today's euros</strong> (the default) strips inflation out. If it says
-      €102 000, that means <em>as much shopping as €102 000 buys you today</em>. This
-      is the number that actually matters, and it is what the historical data
-      naturally gives us.
+      <strong>Future euros</strong> (the default) is the amount you would literally
+      see printed on a statement in ten years — the number of euros you will be
+      holding. It is the bigger of the two, because prices will have risen along
+      with it.
     </li>
     <li>
-      <strong>Euros of the day</strong> is the bigger, more flattering number you
-      would literally see printed on a statement in ten years. It is the same
-      outcome, just measured with a shrinking ruler.
+      <strong>Today's money</strong> takes that rise back out again. If it says
+      €102 000, it means <em>as much shopping as €102 000 buys you today</em>. It is
+      the smaller and more sobering figure, and it is the one the historical data
+      gives us directly: everything is simulated in it and then converted.
     </li>
   </ul>
   <p data-i18n="how.units.p2">
-    For the “euros of the day” view we do <em>not</em> guess inflation from history —
+    For the “future euros” view we do <em>not</em> guess inflation from history —
     the 1923 German hyperinflation would make that meaningless. Instead you set a
     single assumed inflation rate (2% by default, the European Central Bank's
-    target). In that view we also assume you raise your monthly payment with
-    inflation, so it keeps the same real value; that is why the “money you paid in”
-    line is higher there.
+    target), in the box beside the toggle. In that view we also assume you raise
+    your monthly payment with inflation, so it keeps the same real value; that is
+    why the “money you paid in” line is higher there.
   </p>
 
   <h3 data-i18n="how.bands.title">What the bands mean</h3>
@@ -706,7 +711,7 @@
     <dd>A loan to a government. You hand over money, receive interest, and get the money back at the end. Safer than shares, because governments rarely fail to pay — but the market price of an existing bond falls when new bonds start offering higher interest.</dd>
 
     <dt>Real return (“after inflation”)</dt>
-    <dd>How much more you can actually buy. If your money grows 5% but prices rise 2%, your real return is about 3%. Every headline number on this page is real unless you switch to “euros of the day”.</dd>
+    <dd>How much more you can actually buy. If your money grows 5% but prices rise 2%, your real return is about 3%. The whole simulation is run in real terms; switch the toggle to “today's money” and every figure on the page is a real one.</dd>
 
     <dt>Total return</dt>
     <dd>Price change <em>plus</em> the dividends and interest you received, assuming you reinvested them. Ignoring dividends would understate share returns by roughly 2–4% a year — so we never do.</dd>

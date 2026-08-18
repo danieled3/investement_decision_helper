@@ -204,6 +204,13 @@ section { scroll-margin-top: 16px; }
 .plan-col .sleeve { padding: 12px 12px 8px; }
 .plan-col .sleeve-note { font-size: 12.5px; line-height: 1.45; margin-bottom: 10px; }
 .plan-col > .row { grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
+/* The sentence that says what the chosen unit means: quieter than a label, and
+   tight under the toggle it belongs to. */
+.view-note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
 
 .sleeve {
   border: 1px solid var(--border);

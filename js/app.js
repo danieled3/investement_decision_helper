@@ -2,11 +2,11 @@
  * UI controller: reads the form, runs the simulation in a worker, renders the
  * chart, the tiles and the table.
  *
- * The engine works in today's euros. The "euros of the day" view is produced by
- * scaling the percentile bands with the cumulative inflation factor (exact,
- * because scaling by a positive deterministic factor preserves percentile
- * order) and by reading the separately-tracked nominal path extrema out of the
- * engine result.
+ * The engine works in real terms — "today's money" on the page. The nominal view
+ * the page opens in, "future euros", is produced by scaling the percentile bands
+ * with the cumulative inflation factor (exact, because scaling by a positive
+ * deterministic factor preserves percentile order) and by reading the
+ * separately-tracked nominal path extrema out of the engine result.
  */
 
 import { createFanChart, createHistogram } from "./chart.js";
@@ -31,7 +31,9 @@ let hist = null;
 let lastResult = null;
 let lastWindows = null;
 let runToken = 0;
-let view = "real"; // "real" | "nominal"
+/* "nominal" leads because it is the number the reader will actually see on a
+   statement; "real" is one click away and the engine works in it either way. */
+let view = "nominal"; // "nominal" | "real"
 let showTable = false;
 
 // ------------------------------------------------------------------ form state
@@ -135,7 +137,7 @@ function applyHash() {
   if (p.has("e") && [...$("era").options].some((o) => o.value === p.get("e"))) {
     $("era").value = p.get("e");
   }
-  if (p.get("v") === "nominal") view = "nominal";
+  if (p.get("v") === "real") view = "real";
   // Only accept values the select actually offers, so a hand-edited link cannot
   // leave a control showing something the simulation is not using.
   const pick = (id, key) => {
@@ -402,7 +404,24 @@ function setView(v) {
 function syncViewButtons() {
   $("viewReal").setAttribute("aria-pressed", String(view === "real"));
   $("viewNominal").setAttribute("aria-pressed", String(view === "nominal"));
+  // The inflation rate is only an input while it is being applied.
   $("inflationField").hidden = view !== "nominal";
+  syncViewNote();
+}
+
+/**
+ * The sentence under the toggle. Two words on a button cannot carry the
+ * difference between a nominal and a real amount, so the chosen one is spelled
+ * out — with the horizon and the inflation actually in use, since those are what
+ * make the two figures differ.
+ */
+function syncViewNote() {
+  $("viewNote").textContent = view === "nominal"
+    ? t("js.view.note.nominal", {
+      years: $("years").value,
+      infl: ratePct(Number($("inflation").value) / 100),
+    })
+    : t("js.view.note.real");
 }
 
 /**
@@ -502,6 +521,7 @@ function render() {
   const r = lastResult;
   if (!r) return;
   document.body.classList.remove("busy");
+  syncViewNote(); // the horizon or the inflation rate may just have changed
   const v = projectResult(r);
   const o = r.opts;
   const overlay = pickOverlay(v);
@@ -539,6 +559,8 @@ function render() {
      €75 000 were the multiple. Name each figure once, then say what unit both
      are in. */
   const multiple = v.final.p50 / v.totalPaidIn;
+  const monthly = o.monthlyRisky + o.monthlySafe;
+  const plainTotal = o.initialRisky + o.initialSafe + monthly * o.years * 12;
   $("heroNote").textContent = t("js.heroNote", {
     years: o.years,
     paid: euro(v.totalPaidIn),
@@ -547,7 +569,9 @@ function render() {
     taxClause: v.tax.enabled
       ? t("js.heroNote.after", { short: planShort(plan) })
       : t("js.heroNote.before"),
-  });
+  }) + (view === "nominal" && monthly > 0
+    ? t("js.heroNote.raised", { monthly: euro(monthly), plain: euro(plainTotal) })
+    : "");
 
   // ---------------------------------------------------------------- tiles
   setTile("tileP1", euro(v.final.p1), t("js.note.below1"));
@@ -560,10 +584,11 @@ function render() {
   setTile("tileP75", euro(v.final.p75), t("js.note.above25"));
   setTile("tileP95", euro(v.final.p95), t("js.note.above5"));
   setTile("tileP99", euro(v.final.p99), t("js.note.above1"));
-  setTile("tilePaidIn", euro(v.totalPaidIn), t("js.note.paidIn", {
-    start: euro(o.initialRisky + o.initialSafe),
-    monthly: euro(o.monthlyRisky + o.monthlySafe),
-  }));
+  setTile("tilePaidIn", euro(v.totalPaidIn), t(
+    view === "nominal" ? "js.note.paidInRaised" : "js.note.paidIn", {
+      start: euro(o.initialRisky + o.initialSafe),
+      monthly: euro(o.monthlyRisky + o.monthlySafe),
+    }));
   setTile("tileBelow", pct(v.probBelowPaidIn, 1), t("js.note.below"));
 
   // The two path-extreme tiles in the summary card: the typical journey as the

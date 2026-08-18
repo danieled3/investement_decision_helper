@@ -56,7 +56,7 @@ function cssVar(node, name) {
  *   paidIn: number[],             // arrays of length nPts
  *   overlay: {label, path} | null,
  *   showBands: {p99: bool, p95: bool, p50: bool},
- *   unitLabel: string             // "today's euros" / "euros of the day"
+ *   unitLabel: string             // "future euros" / "today's money"
  * }
  */
 export function createFanChart(root) {

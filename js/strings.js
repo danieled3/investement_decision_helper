@@ -99,8 +99,8 @@ export const STRINGS = {
   "opt.band.additional": { it: "Aliquota massima — oltre £125.140" },
 
   "field.view": { it: "Mostra gli importi in" },
-  "opt.view.real": { it: "Euro di oggi" },
-  "opt.view.nominal": { it: "Euro del giorno" },
+  "opt.view.real": { it: "Soldi di oggi" },
+  "opt.view.nominal": { it: "Euro futuri" },
   "field.inflation": { it: "Inflazione ipotizzata, % all'anno" },
 
   "field.era": { it: "Su quale storia imparare" },
@@ -137,7 +137,7 @@ export const STRINGS = {
   // ================================================================ the answer
   "res.title": { it: "2 · La risposta" },
   "res.heroLabel": {
-    it: 'il caso più probabile, in <span id="heroUnit">euro di oggi</span>',
+    it: 'il caso più probabile, in <span id="heroUnit">euro futuri</span>',
   },
   "tile.paidIn": { it: "Soldi che hai messo" },
   "tile.p1": { it: "Molto sfortunato — il peggior caso su 100" },
@@ -301,32 +301,34 @@ export const STRINGS = {
       proprio perché anni come quello restino possibili.`,
   },
 
-  "how.units.title": { it: "“Euro di oggi” contro “euro del giorno”" },
+  "how.units.title": { it: "“Euro futuri” contro “soldi di oggi”" },
   "how.units.p1": {
-    it: `€100 fra dieci anni non compreranno quello che comprano €100 adesso. Ci sono
-      due modi onesti di parlarne, e l'interruttore accanto al tuo piano passa da
-      uno all'altro:`,
+    it: `€100 fra dieci anni non compreranno quello che comprano €100 adesso. Perciò lo
+      stesso risultato si può scrivere come due cifre diverse, e l'interruttore
+      accanto al tuo piano passa da una all'altra:`,
   },
   "how.units.list": {
     it: `<li>
-        <strong>Euro di oggi</strong> (il valore predefinito) toglie l'inflazione. Se
-        dice €102 000, significa <em>tanta spesa quanta ne fai oggi con €102 000</em>.
-        È il numero che conta davvero, ed è quello che i dati storici ci danno in
-        modo naturale.
+        <strong>Euro futuri</strong> (il valore predefinito) è la cifra che vedresti
+        letteralmente stampata su un estratto conto fra dieci anni — gli euro che
+        avrai in mano. È la più grande delle due, perché nel frattempo saranno
+        saliti anche i prezzi.
       </li>
       <li>
-        <strong>Euro del giorno</strong> è il numero più grande e più lusinghiero che
-        vedresti letteralmente stampato su un estratto conto fra dieci anni. È lo
-        stesso risultato, misurato con un metro che si accorcia.
+        <strong>Soldi di oggi</strong> quella salita la toglie di nuovo. Se dice
+        €102 000, significa <em>tanta spesa quanta ne fai oggi con €102 000</em>. È la
+        cifra più piccola e più severa, ed è quella che i dati storici ci danno
+        direttamente: tutto è simulato così e poi convertito.
       </li>`,
   },
   "how.units.p2": {
-    it: `Per la vista “euro del giorno” <em>non</em> ricaviamo l'inflazione dalla storia:
+    it: `Per la vista “euro futuri” <em>non</em> ricaviamo l'inflazione dalla storia:
       l'iperinflazione tedesca del 1923 renderebbe la cosa priva di senso. Imposti
       invece un'unica inflazione ipotizzata (2% per default, l'obiettivo della Banca
-      Centrale Europea). In quella vista assumiamo anche che tu alzi il versamento
-      mensile con l'inflazione, così mantiene lo stesso valore reale: è per questo
-      che lì la linea dei “soldi versati” è più alta.`,
+      Centrale Europea), nella casella accanto all'interruttore. In quella vista
+      assumiamo anche che tu alzi il versamento mensile con l'inflazione, così
+      mantiene lo stesso valore reale: è per questo che lì la linea dei “soldi
+      versati” è più alta.`,
   },
 
   "how.bands.title": { it: "Cosa significano le fasce" },
@@ -519,7 +521,7 @@ export const STRINGS = {
     <dd>Un prestito a un governo. Consegni del denaro, ricevi interessi e alla fine ti restituiscono il capitale. Più sicuro delle azioni, perché i governi raramente non pagano — ma il prezzo di mercato di un titolo già emesso scende quando i nuovi titoli iniziano a offrire interessi più alti.</dd>
 
     <dt>Rendimento reale (“al netto dell'inflazione”)</dt>
-    <dd>Quanto in più puoi davvero comprare. Se i tuoi soldi crescono del 5% ma i prezzi salgono del 2%, il tuo rendimento reale è circa il 3%. Ogni numero principale di questa pagina è reale, a meno che tu non passi a “euro del giorno”.</dd>
+    <dd>Quanto in più puoi davvero comprare. Se i tuoi soldi crescono del 5% ma i prezzi salgono del 2%, il tuo rendimento reale è circa il 3%. Tutta la simulazione gira in termini reali: porta l'interruttore su “soldi di oggi” e ogni cifra della pagina è una cifra reale.</dd>
 
     <dt>Rendimento totale</dt>
     <dd>Variazione di prezzo <em>più</em> i dividendi e gli interessi ricevuti, ipotizzando di averli reinvestiti. Ignorare i dividendi sottostimerebbe il rendimento delle azioni di circa il 2–4% all'anno, quindi non lo facciamo mai.</dd>
@@ -711,8 +713,18 @@ export const STRINGS = {
   },
 
   "js.years": { en: "{n} years", it: "{n} anni" },
-  "js.unit.real": { en: "today's euros", it: "euro di oggi" },
-  "js.unit.nominal": { en: "euros of the day", it: "euro del giorno" },
+  "js.unit.real": { en: "today's money", it: "soldi di oggi" },
+  "js.unit.nominal": { en: "future euros", it: "euro futuri" },
+  /* Two words on a button cannot carry the difference between a nominal and a
+     real amount, so the selected one is spelled out underneath in a sentence. */
+  "js.view.note.nominal": {
+    en: "The number you would see on a statement in {years} years. Inflation is left in, so it looks bigger — {infl} a year is assumed.",
+    it: "La cifra che vedresti su un estratto conto fra {years} anni. L'inflazione è lasciata dentro, quindi sembra più grande — si ipotizza il {infl} all'anno.",
+  },
+  "js.view.note.real": {
+    en: "Inflation taken out: what the money would buy at today's prices.",
+    it: "Inflazione tolta: quello che quei soldi comprerebbero ai prezzi di oggi.",
+  },
   "js.table.show": { en: "Show the numbers", it: "Mostra i numeri" },
   "js.table.hide": { en: "Hide the numbers", it: "Nascondi i numeri" },
   "js.and": { en: " and ", it: " e " },
@@ -732,6 +744,14 @@ export const STRINGS = {
   "js.heroNote": {
     en: "Over {years} years you pay in {paid}, so the figure above is {mult}× the money you put in. Both figures are in {unit}, {taxClause}.",
     it: "In {years} anni versi {paid}, quindi la cifra qui sopra è {mult}× i soldi che hai messo. Entrambe le cifre sono in {unit}, {taxClause}.",
+  },
+  /* In future euros the monthly payment is raised each year to hold its real
+     value, so the money-paid-in figure is larger than the plan as typed. Two
+     different totals for the same plan, twenty centimetres apart on the page,
+     have to be explained where they are read. */
+  "js.heroNote.raised": {
+    en: " That total rises with inflation too, so each payment keeps the same value; at a flat {monthly} a month it would be {plain}.",
+    it: " Anche quel totale sale con l'inflazione, così ogni versamento mantiene lo stesso valore; a {monthly} fissi al mese sarebbe {plain}.",
   },
   "js.heroNote.after": { en: "after {short}", it: "al netto delle {short}" },
   "js.heroNote.before": { en: "before any tax", it: "al lordo delle imposte" },
@@ -760,6 +780,12 @@ export const STRINGS = {
     it: "trascinata in alto dai pochi più fortunati — la cifra grande sopra è quella tipica",
   },
   "js.note.paidIn": { en: "{start} now + {monthly}/month", it: "{start} adesso + {monthly}/mese" },
+  /* In future euros the monthly payment is raised each year so that it keeps the
+     same real value, which is why the total is larger than the plan as typed. */
+  "js.note.paidInRaised": {
+    en: "{start} now + {monthly}/month, raised with inflation",
+    it: "{start} adesso + {monthly}/mese, alzati con l'inflazione",
+  },
   "js.note.below": {
     en: "chance of ending with less than you paid in",
     it: "probabilità di finire con meno di quanto hai versato",

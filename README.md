@@ -29,9 +29,12 @@ two funds, and how many years you are investing for. It then answers:
   worst 1 in 100, the average of every path and the best 1 in 100 lead the card.
 - **The worst moment, not just the worst ending** — the lowest the pot fell to at
   any point along the way, and how far below the money you had paid in it went.
-- **Real or nominal** — the same run shown in today's purchasing power or in
-  euros of the day, toggled without re-simulating. The switch sits next to your
-  plan on the first screen, not behind an "advanced" heading.
+- **Future euros or today's money** — the page opens in **future euros**, the
+  amount a statement would show on the day, because that is the number people
+  expect to read; one click converts everything to today's purchasing power,
+  without re-simulating. The switch sits next to your plan on the first screen,
+  not behind an "advanced" heading, and a line underneath says in words what the
+  chosen unit means, since two-word labels cannot carry that difference.
 - **Tax** — Italy or the UK, computed properly (see below), or switched off to
   show the gross figures.
 - **What actually happened** — every real historical window of that length,
