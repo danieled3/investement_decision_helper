@@ -72,6 +72,9 @@ export const STRINGS = {
   "opt.years.25": { it: "25 anni" },
   "opt.years.30": { it: "30 anni" },
 
+  "field.advisor.check": { it: "Pago un consulente finanziario" },
+  "field.advisorFee": { it: "Il suo compenso, % all'anno su tutto quello che hai" },
+
   "plan.sum.start": { it: 'Parti con <b id="sumStart">€15 000</b>' },
   "plan.sum.monthly": { it: 'Aggiungi <b id="sumMonthly">€500</b> ogni mese' },
   "plan.sum.total": {
@@ -143,6 +146,7 @@ export const STRINGS = {
   "tile.p1": { it: "Molto sfortunato — il peggior caso su 100" },
   "tile.mean": { it: "La media di tutti i percorsi" },
   "tile.p99": { it: "Molto fortunato — il miglior caso su 100" },
+  "tile.advisor": { it: "Al consulente, in media" },
   "tile.minPath": { it: "Punto più basso lungo la strada" },
   "tile.maxPath": { it: "Punto più alto lungo la strada" },
   "tile.below": { it: "Probabilità di finire in perdita" },
@@ -252,8 +256,40 @@ export const STRINGS = {
       </ul>`,
   },
 
+  // ========================================================== the consultant
+  "advisor.title": { it: "6 · Quanto si prende il consulente" },
+  "tile.advTotal": { it: "Versato al consulente in tutto" },
+  "tile.advShare": { it: "Quota del tuo guadagno che si prende" },
+  "tile.advDrag": { it: "Quanto toglie ai soldi investiti oggi" },
+  "advisor.how.title": { it: "Come viene applicato il compenso" },
+  "advisor.warn": {
+    it: `<strong>Questo non dice nulla su quanto un consulente valga.</strong> Mette un
+      prezzo sul compenso, che è la metà facile. Un buon consulente può valere
+      molte volte questa cifra — impedendoti di vendere durante un crollo,
+      scegliendo il conto giusto dal punto di vista fiscale, facendoti risparmiare
+      qualcosa invece di niente. Uno cattivo ti costa questa cifra <em>e</em> gli
+      errori. Due cose che vale la pena sapere prima di giudicare il numero:
+      <ul style="margin:8px 0 0">
+        <li>
+          Una percentuale su tutto quello che hai si paga sia che l'anno sia andato
+          bene sia che sia andato male, e cresce mentre cresce il capitale: il conto
+          dell'ultimo anno è di solito diverse volte quello del primo. Un compenso
+          fisso, una consulenza a ore o un piano finanziario una volta sola non si
+          comportano affatto così.
+        </li>
+        <li>
+          In Italia il compenso del consulente si paga normalmente di tasca propria
+          o viene addebitato sul conto, e <em>non</em> riduce il guadagno tassabile
+          — il modello lo tratta come tratta il costo del fondo, togliendolo dal
+          capitale prima di calcolare le imposte. Se il tuo lo paghi a parte, i
+          soldi escono dalla tua tasca e il conto fiscale qui sopra è leggermente
+          sottostimato.
+        </li>
+      </ul>`,
+  },
+
   // ============================================================ real history
-  "hist.title": { it: "6 · Cosa è successo davvero, ogni singola volta" },
+  "hist.title": { it: "7 · Cosa è successo davvero, ogni singola volta" },
   "hist.hint": { it: "storia reale, nessun caso" },
   "hist.note": {
     it: `In questo grafico non c'è nessuna casualità: prende il tuo piano esatto e lo
@@ -263,7 +299,7 @@ export const STRINGS = {
   },
 
   // ============================================================= how it works
-  "how.title": { it: "7 · Come funziona, in parole semplici" },
+  "how.title": { it: "8 · Come funziona, in parole semplici" },
   "how.hint": { it: "per chi non sa nulla di finanza" },
 
   "how.choice.title": { it: "Le due cose fra cui stai scegliendo" },
@@ -460,7 +496,7 @@ export const STRINGS = {
 
   "how.replay.title": { it: "Perché non riprodurre semplicemente la storia?" },
   "how.replay.p1": {
-    it: `Lo facciamo — è la sezione 6, ed è la cosa più affidabile della pagina. Ma non
+    it: `Lo facciamo — è la sezione 7, ed è la cosa più affidabile della pagina. Ma non
       può rispondere alla domanda che hai fatto. Tra il 1900 e il 2025 ci sono solo
       117 periodi di dieci anni, e si sovrappongono molto: 1970–1979 e 1971–1980
       condividono nove dei loro dieci anni. In pratica sono solo una dozzina di
@@ -496,7 +532,7 @@ export const STRINGS = {
   "how.missing.title": { it: "Cosa <em>non</em> c'è in questi numeri" },
   "how.missing.list": {
     it: `<li><strong>Quasi tutto il resto del diritto tributario.</strong> Le imposte <em>sono</em> incluse per i due paesi disponibili, ma solo nelle parti che incontra un normale investitore privato con due ETF: l'imposta annua sul capitale, l'imposta sul reddito dei fondi e l'imposta sul guadagno alla vendita. Patrimoniali di altri paesi, imposte di successione, imposte all'uscita per cambio di residenza, la Tobin tax italiana (che comunque non si applica agli ETF), le minusvalenze riportate dagli anni precedenti e qualunque franchigia che tu abbia già usato altrove non ci sono.</li>
-      <li><strong>Costi di negoziazione e di piattaforma.</strong> È addebitato solo il costo annuo di gestione dei fondi. Commissioni del broker, cambio valuta e spese di conto no.</li>
+      <li><strong>Costi di negoziazione e di piattaforma.</strong> Il costo annuo di gestione dei fondi è sempre addebitato, e con esso il compenso del consulente se ne imposti uno. Commissioni del broker, cambio valuta e spese di tenuta conto no.</li>
       <li><strong>Il ribilanciamento.</strong> Le due parti sono lasciate andare alla deriva. Se le azioni volano, la tua quota rischiosa cresce e resta cresciuta.</li>
       <li><strong>Il tuo comportamento.</strong> La simulazione non va mai nel panico, non smette mai di versare, non vende mai sul fondo. Le persone vere lo fanno.</li>
       <li><strong>Il rischio di cambio.</strong> L'indice azionario mondiale è trattato in euro senza copertura, che è ciò che un tipico investitore in euro detiene — ma la storia dei cambi prima del 1971 era un mondo molto diverso.</li>
@@ -511,8 +547,8 @@ export const STRINGS = {
   },
 
   // ================================================================= glossary
-  "gloss.title": { it: "8 · Ogni parola spiegata" },
-  "gloss.hint": { it: "22 termini, in parole semplici" },
+  "gloss.title": { it: "9 · Ogni parola spiegata" },
+  "gloss.hint": { it: "23 termini, in parole semplici" },
   "gloss.list": {
     it: `<dt>ETF (fondo quotato in borsa)</dt>
     <dd>Una cosa sola che puoi comprare e che contiene dentro molti investimenti. Un “ETF azionario mondiale” contiene azioni di migliaia di aziende in tutto il mondo, così il fallimento di una singola azienda non può farti molto male. Si compra e si vende come un'azione e costa tipicamente lo 0,1–0,3% del tuo denaro all'anno.</dd>
@@ -540,6 +576,9 @@ export const STRINGS = {
 
     <dt>TER (costo totale del fondo)</dt>
     <dd>Il costo annuo del fondo, prelevato automaticamente dal valore del fondo stesso. 0,20% significa €20 all'anno su €10 000. Numeri piccoli, ma si accumulano: 0,5% all'anno costa circa il 5% del tuo denaro in dieci anni.</dd>
+
+    <dt>Compenso del consulente (una percentuale di quello che hai)</dt>
+    <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su tutto quello che c'è nel conto, non sul guadagno. L'1% su €100 000 fa €1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Si comporta esattamente come il TER qui sopra, solo molto più grande — ed è per questo che ha una sezione tutta sua.</dd>
 
     <dt>Correlazione</dt>
     <dd>Se due cose si muovono insieme. +1 significa sempre all'unisono, 0 significa senza relazione, −1 significa opposti perfetti. Azioni e obbligazioni qui sono state circa <b id="dsCorr">0.2</b>: legate, ma poco, che è esattamente ciò che rende utile tenerle entrambe.</dd>
@@ -579,7 +618,7 @@ export const STRINGS = {
   },
 
   // ==================================================================== data
-  "data.title": { it: "9 · Da dove vengono i dati" },
+  "data.title": { it: "10 · Da dove vengono i dati" },
   "data.hint": { it: "fonti, punti deboli, come verificare" },
   "data.intro": {
     it: `<b id="dsN">126</b> anni, <span id="dsRange5">1900–2025</span>. Dataset
@@ -1044,6 +1083,86 @@ export const STRINGS = {
   "js.tax.callout": {
     en: "<strong>The tax costs you more than the tax.</strong> On the middle journey you hand over {total}, which is {share} of the {gross} profit you made. But your final total drops by <em>more</em> than {total}: every euro taken early is also a euro that can never grow again. Set the country to “nowhere” and compare the headline to see the full cost.",
     it: "<strong>Le imposte ti costano più delle imposte.</strong> Sul percorso centrale consegni {total}, cioè il {share} del guadagno di {gross} che hai realizzato. Ma il tuo totale finale scende di <em>più</em> di {total}: ogni euro preso presto è anche un euro che non potrà mai più crescere. Metti il paese su “nessun paese” e confronta la cifra principale per vedere il costo pieno.",
+  },
+
+  // ----------------------------------------------------- the consultant's fee
+  "js.adv.planSummary": {
+    en: "A consultant takes {rate} of everything you hold each year — {amount} on today's pot, and more as it grows",
+    it: "Un consulente prende ogni anno il {rate} di tutto quello che hai — {amount} sul capitale di oggi, e di più mentre cresce",
+  },
+  "js.adv.leadNote": {
+    en: "{rate} a year of the balance, over {years} years",
+    it: "il {rate} all'anno sul capitale, per {years} anni",
+  },
+  "js.adv.hint": {
+    en: "{rate} a year — {amount} on average",
+    it: "{rate} all'anno — {amount} in media",
+  },
+  "js.adv.hint.none": { en: "nobody is paid", it: "non paghi nessuno" },
+  "js.adv.intro": {
+    en: "Paying <b>{rate}</b> a year of everything you hold, for {years} years, hands over <b>{amount}</b> on average. All amounts in {unit}, and every other figure on this page is already after this fee.",
+    it: "Pagare il <b>{rate}</b> all'anno su tutto quello che hai, per {years} anni, significa consegnare in media <b>{amount}</b>. Tutti gli importi in {unit}, e ogni altra cifra della pagina è già al netto di questo compenso.",
+  },
+  "js.adv.intro.none": {
+    en: "You have not ticked the consultant box, so nothing is being taken. Tick <em>“I pay a financial consultant”</em> next to your plan and every number on this page — the headline, the bands, the lowest point — becomes the figure after their fee.",
+    it: "Non hai spuntato la casella del consulente, quindi non viene preso niente. Spunta <em>“Pago un consulente finanziario”</em> accanto al tuo piano e ogni numero della pagina — la cifra principale, le fasce, il punto più basso — diventa quello al netto del suo compenso.",
+  },
+  "js.adv.note.none": { en: "nobody is being paid", it: "non stai pagando nessuno" },
+  "js.adv.note.total": {
+    en: "the middle journey pays {med}; between {lo} and {hi} across the unluckier and luckier ones",
+    it: "il percorso centrale paga {med}; tra {lo} e {hi} in quelli più sfortunati e più fortunati",
+  },
+  "js.adv.note.share": {
+    en: "of the {gross} profit made before the fee was taken out",
+    it: "del guadagno di {gross} realizzato prima del prelievo del compenso",
+  },
+  "js.adv.note.drag": {
+    en: "after {years} years it has shrunk them by this much, whatever the market did",
+    it: "dopo {years} anni li ha ridotti di tanto, qualunque cosa abbia fatto il mercato",
+  },
+  "js.adv.dragNote": {
+    en: "That last figure is arithmetic, not a simulation: {rate} taken every year for {years} years leaves {left} of whatever it was charged on, so it costs {drag} of it. It is the honest way to state the price, because it counts the growth the money taken would itself have earned.",
+    it: "Quest'ultima cifra è aritmetica, non una simulazione: il {rate} prelevato ogni anno per {years} anni lascia il {left} di ciò su cui è stato calcolato, quindi ne costa il {drag}. È il modo onesto di dire il prezzo, perché conta anche la crescita che i soldi prelevati avrebbero prodotto.",
+  },
+  "js.adv.rule.basis": {
+    en: "The fee is <b>{rate}</b> of the whole balance, not of the gain and not of what you paid in. On the {pot} you hold today that is {amount}; on a pot twice the size it is twice as much.",
+    it: "Il compenso è il <b>{rate}</b> di tutto il capitale, non del guadagno né di quanto hai versato. Sui {pot} che hai oggi fa {amount}; su un capitale doppio fa il doppio.",
+  },
+  "js.adv.rule.once": {
+    en: "It is taken <b>once a year</b>, at the end of each year, on whatever the pot is worth at that moment — so a good year raises the bill and a bad year lowers it, but never to zero.",
+    it: "Viene prelevato <b>una volta all'anno</b>, a fine anno, su quanto vale il capitale in quel momento — quindi un anno buono alza il conto e un anno cattivo lo abbassa, ma mai a zero.",
+  },
+  "js.adv.rule.prorata": {
+    en: "It comes out of both funds in proportion, so paying it does not quietly change your share/bond split.",
+    it: "Esce da entrambi i fondi in proporzione, quindi pagarlo non cambia di nascosto la tua ripartizione tra azioni e obbligazioni.",
+  },
+  "js.adv.rule.compounding": {
+    en: "Each payment is gone for the rest of the period, so it is subtracted <em>inside</em> the {years}-year simulation rather than added up at the end — money handed over early spends every remaining year out of the market.",
+    it: "Ogni pagamento è perso per tutto il resto del periodo, quindi viene sottratto <em>dentro</em> la simulazione di {years} anni invece di essere sommato alla fine — i soldi consegnati presto passano fuori dal mercato tutti gli anni che restano.",
+  },
+  "js.adv.rule.tax": {
+    en: "It is treated like the funds' own charge: it lowers the balance, so it lowers the eventual gain and therefore the tax as well. It is <b>not</b> modelled as a sale, so it triggers no tax of its own.",
+    it: "È trattato come il costo interno dei fondi: abbassa il capitale, quindi abbassa il guadagno finale e con esso anche le imposte. <b>Non</b> è modellato come una vendita, quindi non fa scattare imposte per conto proprio.",
+  },
+  "js.adv.rule.taxOff": {
+    en: "It lowers the balance directly, exactly like the funds' own charge. Tax is switched off in this run, so the fee is the only thing being taken out.",
+    it: "Abbassa direttamente il capitale, esattamente come il costo interno dei fondi. In questa simulazione le imposte sono disattivate, quindi il compenso è l'unica cosa che viene prelevata.",
+  },
+  "js.adv.rule.mean": {
+    en: "The figure shown is the <b>average</b> across every simulated journey, not the middle one. A fee charged on the balance is biggest exactly where things went well, so the middle journey pays less than the average — quoting it would flatter the arrangement.",
+    it: "La cifra mostrata è la <b>media</b> di tutti i percorsi simulati, non quella centrale. Un compenso calcolato sul capitale è più grande proprio dove le cose sono andate bene, quindi il percorso centrale paga meno della media — citare quello abbellirebbe il quadro.",
+  },
+  "js.adv.rules.none": {
+    en: "<li>No consultant, so no fee is being applied.</li>",
+    it: "<li>Nessun consulente, quindi non viene applicato nessun compenso.</li>",
+  },
+  "js.adv.callout": {
+    en: "<strong>Compare it with what you get.</strong> Over {years} years this arrangement takes {amount} in {unit}, about {share} of the profit. Untick the box and watch the headline: the gap it opens is the whole price, including the growth those payments would have produced. Whether the advice is worth that gap is the only question that matters — and it is not one a model can answer.",
+    it: "<strong>Confrontalo con quello che ricevi.</strong> In {years} anni questa soluzione si prende {amount} in {unit}, circa il {share} del guadagno. Togli la spunta e guarda la cifra principale: il divario che si apre è il prezzo pieno, inclusa la crescita che quei pagamenti avrebbero prodotto. Se la consulenza valga quel divario è l'unica domanda che conta — e non è una domanda a cui un modello possa rispondere.",
+  },
+  "js.adv.callout.none": {
+    en: "<strong>Worth checking anyway.</strong> Many people pay a percentage of their pot without ever seeing it as a number, because it is deducted rather than invoiced. If you hold funds through a bank or an adviser, look up the rate and try it here: 1% a year sounds small and rarely is.",
+    it: "<strong>Vale la pena controllare comunque.</strong> Molti pagano una percentuale del proprio capitale senza vederla mai come cifra, perché viene dedotta invece che fatturata. Se hai fondi tramite una banca o un consulente, cerca la percentuale e provala qui: l'1% all'anno sembra poco e quasi mai lo è.",
   },
 
   // -------------------------------------------------------- history section

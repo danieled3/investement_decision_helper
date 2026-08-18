@@ -44,6 +44,8 @@ const FIELDS = {
   monthlyRisky: "num",
   monthlySafe: "num",
   years: "int",
+  advisorOn: "bool",
+  advisorFee: "pct",
   terRisky: "pct",
   terSafe: "pct",
   inflation: "pct",
@@ -88,6 +90,9 @@ function readForm() {
     monthlyRisky: field("monthlyRisky", 0, 1e7, 400),
     monthlySafe: field("monthlySafe", 0, 1e7, 100),
     years: Math.round(field("years", 1, 40, 10)),
+    // The percentage stays in the box when the flag is cleared, so that unticking
+    // and re-ticking does not lose it — but a cleared flag must mean zero.
+    advisorFee: $("advisorOn").checked ? field("advisorFee", 0, 5, 1) / 100 : 0,
     terRisky: field("terRisky", 0, 5, 0.2) / 100,
     terSafe: field("terSafe", 0, 5, 0.1) / 100,
     inflation: field("inflation", -5, 20, 2) / 100,
@@ -113,6 +118,8 @@ function writeHash(o) {
   p.set("v", view);
   p.set("l", getLang());
   p.set("i", (o.inflation * 100).toFixed(2));
+  // Absent rather than zero when nobody is paid, so the ordinary link stays short.
+  if (o.advisorFee > 0) p.set("af", (o.advisorFee * 100).toFixed(2));
   p.set("c", $("taxCountry").value);
   if ($("taxCountry").value === "it") p.set("f", $("taxFund").value);
   if ($("taxCountry").value === "gb") {
@@ -134,6 +141,16 @@ function applyHash() {
   set("monthlySafe", "ms");
   set("inflation", "i");
   if (p.has("y")) $("years").value = p.get("y");
+  // A shared link carries the fee, and the fee implies the flag: a link that
+  // arrived with a percentage in it but the box unticked would show one thing and
+  // simulate another. Zero, or anything unreadable, leaves the flag clear.
+  if (p.has("af")) {
+    const fee = parseFloat(p.get("af"));
+    if (Number.isFinite(fee) && fee > 0) {
+      $("advisorFee").value = String(Math.min(5, fee));
+      $("advisorOn").checked = true;
+    }
+  }
   if (p.has("e") && [...$("era").options].some((o) => o.value === p.get("e"))) {
     $("era").value = p.get("e");
   }
@@ -186,6 +203,7 @@ async function boot() {
   syncViewButtons();
   syncLangButtons();
   syncTaxFields();
+  syncAdvisorFields();
   run();
 }
 
@@ -273,6 +291,17 @@ function updatePlanSummary(o) {
   $("sumHorizon").textContent = t("js.years", { n: o.years });
   $("sumTotal").textContent = euro(start + monthly * o.years * 12);
   $("taxSummary").textContent = describeTaxPlan(o.tax);
+  // The plan column says what the plan is, so the fee belongs here as well as in
+  // its own box — and it says the euro figure, because a percentage of a balance
+  // is the one charge people routinely read as "nearly nothing".
+  const adv = $("advisorSummary");
+  adv.hidden = o.advisorFee <= 0;
+  if (o.advisorFee > 0) {
+    adv.textContent = t("js.adv.planSummary", {
+      rate: ratePct(o.advisorFee, 2),
+      amount: euro(start * o.advisorFee),
+    });
+  }
 }
 
 // ------------------------------------------------------------------- controls
@@ -292,6 +321,8 @@ function wireControls() {
   // so unlike the real/nominal toggle these cannot be applied to a finished run.
   $("taxCountry").addEventListener("change", () => syncTaxFields(true));
   $("taxWrapper").addEventListener("change", () => syncTaxFields());
+
+  $("advisorOn").addEventListener("change", () => syncAdvisorFields());
 
   for (const id of ["band99", "band95", "band50"]) {
     $(id).addEventListener("change", () => {
@@ -346,6 +377,9 @@ function wireControls() {
     $("monthlyRisky").value = 400;
     $("monthlySafe").value = 100;
     $("years").value = 10;
+    $("advisorOn").checked = false;
+    $("advisorFee").value = 1;
+    syncAdvisorFields();
     $("terRisky").value = 0.2;
     $("terSafe").value = 0.1;
     $("inflation").value = 2;
@@ -451,6 +485,16 @@ function syncTaxFields(countryChanged = false) {
   }
 }
 
+/**
+ * Most readers pay nobody, so the percentage box only exists once the flag is
+ * ticked — an input that cannot affect the answer should not be on the screen.
+ * The value it holds is left alone, so unticking and re-ticking is not
+ * destructive.
+ */
+function syncAdvisorFields() {
+  $("advisorFeeRow").hidden = !$("advisorOn").checked;
+}
+
 // ------------------------------------------------------------------ rendering
 
 function unitLabel() {
@@ -472,6 +516,7 @@ function projectResult(r) {
       worstGap: r.worstGap,
       probBelowPaidIn: r.probBelowPaidIn,
       tax: r.tax,
+      advisor: r.advisor,
       factor: null,
       nPts,
     };
@@ -494,6 +539,10 @@ function projectResult(r) {
     // the yearly charges are paid at many different dates, so the engine adds
     // them up in euros of the day as it goes rather than converting afterwards
     tax: { ...r.tax, ...r.tax.nominal },
+    // Same reason as the tax: the consultant is paid on many different dates, so
+    // the bills are added up in euros of the day inside the engine. The rate and
+    // the drag on the initial pot are ratios, so they are the same in both units.
+    advisor: { ...r.advisor, ...r.nominal.advisor },
     factor: f,
     nPts,
   };
@@ -633,6 +682,9 @@ function render() {
 
   // --------------------------------------------------------------- the tax bill
   renderTax(v, o);
+
+  // ------------------------------------------------------------- the consultant
+  renderAdvisor(v, o);
 
   // ------------------------------------------------------- historical section
   renderHistorical(v, overlay);
@@ -827,6 +879,81 @@ function renderTax(v, o) {
     total: euro(tx.total.p50),
     share: pct(tx.shareOfGainAtMedian, 0),
     gross: euro(gross),
+  });
+}
+
+/**
+ * The consultant's fee. The figure that leads, here and in the answer card, is
+ * the MEAN bill rather than the median: a percentage of the balance is largest in
+ * exactly the journeys that went well, so the median would quietly flatter the
+ * arrangement. The percentiles are given underneath, where there is room to say
+ * what they are.
+ */
+function renderAdvisor(v, o) {
+  const a = v.advisor;
+  const on = a.enabled;
+  const unit = unitLabel();
+
+  // The fourth tile in the leading row, and the extra column it needs.
+  $("tileAdvisor").hidden = !on;
+  $("tilesLead").classList.toggle("with-advisor", on);
+
+  if (!on) {
+    $("advisorHint").textContent = t("js.adv.hint.none");
+    $("advisorIntro").innerHTML = t("js.adv.intro.none");
+    setTile("tileAdvTotal", euro(0), t("js.adv.note.none"));
+    setTile("tileAdvShare", pct(0, 0), t("js.adv.note.none"));
+    setTile("tileAdvDrag", pct(0, 0), t("js.adv.note.none"));
+    $("advisorDragNote").textContent = "";
+    $("advisorRules").innerHTML = t("js.adv.rules.none");
+    $("advisorCallout").innerHTML = t("js.adv.callout.none");
+    return;
+  }
+
+  const rate = ratePct(a.fee, 2);
+  setTile("tileAdvisor", euro(a.mean), t("js.adv.leadNote", {
+    rate, years: o.years,
+  }));
+  $("advisorHint").textContent = t("js.adv.hint", { rate, amount: euro(a.mean) });
+  $("advisorIntro").innerHTML = t("js.adv.intro", {
+    rate, years: o.years, unit, amount: euro(a.mean),
+  });
+
+  setTile("tileAdvTotal", euro(a.mean), t("js.adv.note.total", {
+    med: euro(a.p50), lo: euro(a.p5), hi: euro(a.p95),
+  }));
+  setTile("tileAdvShare", pct(a.shareOfGainAtMean, 1), t("js.adv.note.share", {
+    gross: euro(a.gainBeforeAtMean),
+  }));
+  setTile("tileAdvDrag", pct(a.dragOnInitial, 1), t("js.adv.note.drag", {
+    years: o.years,
+  }));
+  $("advisorDragNote").innerHTML = t("js.adv.dragNote", {
+    rate,
+    years: o.years,
+    drag: pct(a.dragOnInitial, 1),
+    left: pct(1 - a.dragOnInitial, 1),
+  });
+
+  // ---- exactly what the model did, so the number can be checked ----
+  const rules = [];
+  rules.push("<li>" + t("js.adv.rule.basis", {
+    rate,
+    amount: euro(a.feeOnToday),
+    pot: euro(o.initialRisky + o.initialSafe),
+  }) + "</li>");
+  rules.push("<li>" + t("js.adv.rule.once") + "</li>");
+  rules.push("<li>" + t("js.adv.rule.prorata") + "</li>");
+  rules.push("<li>" + t("js.adv.rule.compounding", { years: o.years }) + "</li>");
+  rules.push("<li>" + t(v.tax.enabled ? "js.adv.rule.tax" : "js.adv.rule.taxOff") + "</li>");
+  rules.push("<li>" + t("js.adv.rule.mean") + "</li>");
+  $("advisorRules").innerHTML = rules.join("");
+
+  $("advisorCallout").innerHTML = t("js.adv.callout", {
+    amount: euro(a.mean),
+    share: pct(a.shareOfGainAtMean, 0),
+    years: o.years,
+    unit,
   });
 }
 

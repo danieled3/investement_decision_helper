@@ -113,6 +113,21 @@
     </div>
   </div>
 
+  <!-- A consultant's fee is part of the plan, not a detail of the method, so it
+       belongs here rather than behind the "advanced" heading — it changes the
+       answer more than most of what is in there. Most readers pay nobody, so the
+       percentage only appears once the box is ticked. -->
+  <div class="field" id="advisorField" style="margin:14px 0 0">
+    <label style="display:flex;align-items:center;gap:8px;font-size:15px;color:var(--text-primary)">
+      <input id="advisorOn" type="checkbox" style="width:auto">
+      <span data-i18n="field.advisor.check">I pay a financial consultant</span>
+    </label>
+    <div id="advisorFeeRow" style="margin-top:10px" hidden>
+      <label for="advisorFee" data-i18n="field.advisorFee">Their fee, % a year of everything you hold</label>
+      <input id="advisorFee" type="number" min="0" max="5" step="0.05" value="1" inputmode="decimal">
+    </div>
+  </div>
+
   <!-- The unit belongs on the first screen: it changes what every figure on the
        right means, and it is the one thing a reader is most likely to want to
        switch. A label alone cannot carry the difference, so #viewNote spells out
@@ -140,6 +155,7 @@
   </p>
   <p class="sub" style="margin:8px 0 0" id="allocNote"></p>
   <p class="sub" id="taxSummary" style="margin:6px 0 0"></p>
+  <p class="sub" id="advisorSummary" style="margin:6px 0 0" hidden></p>
 
   <!-- Everything that has a sensible default lives behind one click. -->
   <details class="advanced" id="optionsBox">
@@ -274,11 +290,14 @@
   <p class="sub" id="heroNote"></p>
 
   <!-- The three the reader asked for first: the bad end, the average, the good
-       end. Everything else is a row below them. -->
-  <div class="tiles tiles-3">
+       end. Everything else is a row below them. The fourth cell only exists when
+       a consultant is being paid, and it belongs up here with them: a fee on the
+       whole balance is the same size as the difference between these numbers. -->
+  <div class="tiles tiles-3" id="tilesLead">
     <div class="tile" id="tileP1"><span class="k" data-i18n="tile.p1">Very unlucky — worst 1 in 100</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileMean"><span class="k" data-i18n="tile.mean">The average of all the journeys</span><span class="v">—</span><span class="n"></span></div>
     <div class="tile" id="tileP99"><span class="k" data-i18n="tile.p99">Very lucky — best 1 in 100</span><span class="v">—</span><span class="n"></span></div>
+    <div class="tile" id="tileAdvisor" hidden><span class="k" data-i18n="tile.advisor">To the consultant, on average</span><span class="v">—</span><span class="n"></span></div>
   </div>
 
   <div class="tiles tiles-4">
@@ -448,9 +467,56 @@
   </div>
 </details>
 
+<details class="card box" id="advisorSection">
+  <summary>
+    <span class="box-title" data-i18n="advisor.title">6 · What the consultant takes</span>
+    <span class="hint" id="advisorHint"></span>
+  </summary>
+  <div class="box-body">
+    <p class="sub" id="advisorIntro"></p>
+
+    <div class="tiles">
+      <div class="tile" id="tileAdvTotal"><span class="k" data-i18n="tile.advTotal">Paid to the consultant in total</span><span class="v">—</span><span class="n"></span></div>
+      <div class="tile" id="tileAdvShare"><span class="k" data-i18n="tile.advShare">Share of your profit it takes</span><span class="v">—</span><span class="n"></span></div>
+      <div class="tile" id="tileAdvDrag"><span class="k" data-i18n="tile.advDrag">What it takes off money invested today</span><span class="v">—</span><span class="n"></span></div>
+    </div>
+    <p class="sub" style="margin-top:10px" id="advisorDragNote"></p>
+
+    <h3 data-i18n="advisor.how.title">How the fee is applied</h3>
+    <ul id="advisorRules"></ul>
+
+    <div class="callout" id="advisorCallout"></div>
+
+    <div class="callout warn" data-i18n="advisor.warn">
+      <strong>This says nothing about whether a consultant is worth it.</strong> It
+      prices the fee, which is the easy half. A good adviser can be worth several
+      times this number — by stopping you selling in a crash, by getting the tax
+      wrapper right, by making you save at all. A bad one costs you this
+      <em>and</em> the mistakes. Two things worth knowing before you judge the
+      figure:
+      <ul style="margin:8px 0 0">
+        <li>
+          A percentage of everything you hold is charged whether the year was good
+          or bad, and it grows as your pot grows, so the bill in the last year is
+          usually several times the bill in the first. Fixed fees, hourly advice and
+          one-off financial plans do not behave like this at all.
+        </li>
+        <li>
+          In Italy a consultant's fee is normally paid from your own pocket or
+          debited from the account, and it does <em>not</em> reduce the taxable gain
+          — the model treats it the way it treats the funds' own charge, taking it
+          out of the pot before tax is worked out. If yours is paid separately, the
+          money leaves your pocket instead and the tax bill above is slightly
+          understated.
+        </li>
+      </ul>
+    </div>
+  </div>
+</details>
+
 <details class="card box">
   <summary>
-    <span class="box-title" data-i18n="hist.title">6 · What actually happened, every single time</span>
+    <span class="box-title" data-i18n="hist.title">7 · What actually happened, every single time</span>
     <span class="hint" data-i18n="hist.hint">real history, no randomness</span>
   </summary>
   <div class="box-body">
@@ -467,7 +533,7 @@
 
 <details class="card box">
   <summary>
-    <span class="box-title" data-i18n="how.title">7 · How this works, in plain language</span>
+    <span class="box-title" data-i18n="how.title">8 · How this works, in plain language</span>
     <span class="hint" data-i18n="how.hint">for somebody who knows nothing about finance</span>
   </summary>
   <div class="box-body prose">
@@ -648,7 +714,7 @@
 
   <h3 data-i18n="how.replay.title">Why not simply replay history?</h3>
   <p data-i18n="how.replay.p1">
-    We do — that is section 6, and it is the most trustworthy thing on the page. But
+    We do — that is section 7, and it is the most trustworthy thing on the page. But
     it cannot answer the question you asked. Between 1900 and 2025 there are only
     117 ten-year stretches, and they overlap heavily: 1970–1979 and 1971–1980 share
     nine of their ten years. That is really only about a dozen independent
@@ -682,7 +748,7 @@
   <h3 data-i18n="how.missing.title">What is <em>not</em> in these numbers</h3>
   <ul data-i18n="how.missing.list">
     <li><strong>Most of the tax code.</strong> Tax <em>is</em> included for the two countries offered, but only the parts that a plain private investor holding two ETFs meets: the yearly charge on the balance, the tax on fund income, and the tax on the gain at sale. Wealth taxes elsewhere, inheritance tax, exit taxes on changing residence, the Italian financial transaction tax (which does not apply to ETFs anyway), losses carried forward from previous years and any allowance you may already have used elsewhere are all absent.</li>
-    <li><strong>Trading and platform costs.</strong> Only the funds' yearly management fee is charged. Broker commissions, currency conversion and account fees are not.</li>
+    <li><strong>Trading and platform costs.</strong> The funds' yearly management fee is always charged, and a consultant's fee if you set one. Broker commissions, currency conversion and account-keeping fees are not.</li>
     <li><strong>Rebalancing.</strong> The two parts are left to drift apart. If shares boom, your risky share grows and stays grown.</li>
     <li><strong>Your behaviour.</strong> The simulation never panics, never stops paying in, never sells at the bottom. Real people do.</li>
     <li><strong>Currency risk.</strong> The world share index is treated in euro terms without hedging, which is what a typical euro investor holds — but exchange-rate history before 1971 was a very different world.</li>
@@ -699,8 +765,8 @@
 
 <details class="card box">
   <summary>
-    <span class="box-title" data-i18n="gloss.title">8 · Every word explained</span>
-    <span class="hint" data-i18n="gloss.hint">22 terms, plainly</span>
+    <span class="box-title" data-i18n="gloss.title">9 · Every word explained</span>
+    <span class="hint" data-i18n="gloss.hint">23 terms, plainly</span>
   </summary>
   <div class="box-body prose">
   <dl class="glossary" data-i18n="gloss.list">
@@ -730,6 +796,9 @@
 
     <dt>TER (total expense ratio)</dt>
     <dd>The fund's yearly fee, taken automatically out of the fund's value. 0.20% means €20 a year on €10 000. Small numbers, but they compound: 0.5% a year costs about 5% of your money over ten years.</dd>
+
+    <dt>Consultant's fee (a percentage of what you hold)</dt>
+    <dd>The commonest way advice and portfolio management are charged: a yearly percentage of everything in the account, not of the profit. 1% on €100 000 is €1 000 a year, owed whether the year was good or bad, and it grows as the pot grows. It behaves exactly like the TER above, only much larger — which is why it has its own section.</dd>
 
     <dt>Correlation</dt>
     <dd>Whether two things move together. +1 means always in lockstep, 0 means unrelated, −1 means perfect opposites. Shares and bonds have been roughly <b id="dsCorr">0.2</b> here — related, but loosely, which is exactly what makes holding both useful.</dd>
@@ -772,7 +841,7 @@
 
 <details class="card box">
   <summary>
-    <span class="box-title" data-i18n="data.title">9 · Where the data comes from</span>
+    <span class="box-title" data-i18n="data.title">10 · Where the data comes from</span>
     <span class="hint" data-i18n="data.hint">sources, weaknesses, how to check it</span>
   </summary>
   <div class="box-body prose">

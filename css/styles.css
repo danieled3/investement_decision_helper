@@ -437,19 +437,62 @@ details.card.box[open] > summary {
   overflow: hidden;
   margin-top: 14px;
 }
+/* The tile rows inside the boxes hold two, three or four tiles and wrap by
+   width, so the last line is often a tile short. Flex lets whatever is left over
+   stretch across it; the grid above would leave the empty cells showing the gap
+   colour as a grey block. Wrapping still happens at the same 150px, because that
+   is the flex basis. The two leading rows keep the grid — their groupings are
+   deliberate and are set by hand below. */
+.tiles:not(.tiles-3):not(.tiles-4) {
+  display: flex;
+  flex-wrap: wrap;
+}
+.tiles:not(.tiles-3):not(.tiles-4) > .tile {
+  flex: 1 1 150px;
+}
 /* The answer card leads with three tiles — the bad end, the average, the good
    end — and then a row of four. auto-fit would break those groupings at some
    widths, so fix the columns once each row certainly fits. */
 @media (min-width: 620px) {
   .tiles.tiles-3 { grid-template-columns: repeat(3, 1fr); }
 }
-/* Narrower than that the row falls to two columns, so the third tile takes the
-   whole second line rather than leaving an empty cell showing the gap colour. */
+/* Narrower than that the row is pinned to two columns rather than left to
+   auto-fit: three tiles then put the last one across the whole second line, and
+   four make a tidy 2×2. Letting the browser pick the count left an odd number of
+   tiles in a three-column row at some widths, and the empty cell showed as a
+   gap-coloured hole. Below 380px even two columns are too narrow for these
+   figures, so they stack. The third tile is named by position, because the
+   consultant tile is the last child even while it is hidden. */
 @media (max-width: 619px) {
-  .tiles.tiles-3 .tile:last-child { grid-column: 1 / -1; }
+  .tiles.tiles-3 { grid-template-columns: repeat(2, 1fr); }
+  .tiles.tiles-3:not(.with-advisor) .tile:nth-child(3) { grid-column: 1 / -1; }
+}
+@media (max-width: 379px) {
+  .tiles.tiles-3 { grid-template-columns: 1fr; }
+}
+/* Ticking the consultant flag adds a fourth tile to that leading row. Four of
+   these wide labels only fit side by side in a roomy column, so in between it is
+   a 2×2 block — which keeps the pairing tidy — and it never goes to three, which
+   would leave one tile stranded on its own line. */
+@media (min-width: 620px) and (max-width: 819px) {
+  .tiles.tiles-3.with-advisor { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 820px) {
+  .tiles.tiles-3.with-advisor { grid-template-columns: repeat(4, 1fr); }
+  /* Four figures across need a little less room each; two across do not. */
+  .tiles.tiles-3.with-advisor .v { font-size: 23px; }
 }
 @media (min-width: 660px) {
   .tiles.tiles-4 { grid-template-columns: repeat(4, 1fr); }
+}
+/* Four tiles into two columns is 2×2 with nothing left over. Left to auto-fit
+   this row sat in three columns on a middling screen, and the fourth tile then
+   had two empty cells beside it. */
+@media (max-width: 659px) {
+  .tiles.tiles-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 379px) {
+  .tiles.tiles-4 { grid-template-columns: 1fr; }
 }
 /* The leading row is the answer to the question the page asks, so it is louder
    than the supporting row underneath it. */

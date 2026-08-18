@@ -814,7 +814,199 @@ console.log("\n11. TAX — closed-form checks in a constant-return world");
 }
 
 // =====================================================================
-console.log("\n12. TRANSLATIONS — the page must say the same thing in Italian");
+console.log("\n12. CONSULTANT'S FEE — a yearly slice of the whole balance");
+// =====================================================================
+{
+  // Constant returns, no bridge noise: the fee is then pure algebra, so every
+  // figure the page shows can be checked against a hand-written formula.
+  const R = 0.07;
+  const synth = {
+    years: Array.from({ length: 30 }, (_, i) => 1900 + i),
+    equity_real: Array(30).fill(R),
+    bond_real: Array(30).fill(R),
+    inflation: Array(30).fill(0),
+  };
+  const base = {
+    initialRisky: 10000, initialSafe: 0, monthlyRisky: 0, monthlySafe: 0,
+    years: 10, terRisky: 0, terSafe: 0, eraStart: 1900, eraEnd: 1929,
+    nPaths: 100, intraYear: false, inflation: 0,
+    tax: resolveTaxPlan({ country: "none" }),
+  };
+  const fee = 0.01;
+  const free = simulate(synth, base);
+  const paid = simulate(synth, { ...base, advisorFee: fee });
+
+  check(
+    "no fee set means the result is bit-for-bit the old one",
+    paid.advisor.enabled === false || free.final.p50 === simulate(synth, { ...base, advisorFee: 0 }).final.p50,
+    `${eur(free.final.p50)}`
+  );
+  check(
+    "a zero fee reports nothing paid and no drag",
+    free.advisor.enabled === false && free.advisor.mean === 0 &&
+      free.advisor.dragOnInitial === 0 && free.advisor.shareOfGainAtMean === 0
+  );
+
+  // One charge a year on the whole balance is the same as an extra annual cost
+  // of the same size, so the ending value must be the TER identity all over
+  // again: (1 - fee)^years of what it would otherwise have been.
+  const expectedRatio = Math.pow(1 - fee, base.years);
+  check(
+    "1% a year for 10 years leaves exactly (1−fee)^years of the pot",
+    rel(paid.final.p50 / free.final.p50, expectedRatio) < 1e-9,
+    `ratio ${(paid.final.p50 / free.final.p50).toFixed(8)} vs ${expectedRatio.toFixed(8)}`
+  );
+  check(
+    "the drag reported on money invested today is that identity, stated as a loss",
+    rel(paid.advisor.dragOnInitial, 1 - expectedRatio) < 1e-12 &&
+      rel(1 - paid.final.p50 / free.final.p50, paid.advisor.dragOnInitial) < 1e-9,
+    `${(paid.advisor.dragOnInitial * 100).toFixed(4)}% off`
+  );
+
+  // Every yearly bill, added up by hand: at the end of year k the pot is
+  // 10000·(1.07·(1−fee))^(k−1)·1.07, and the fee takes `fee` of it.
+  let handTotal = 0;
+  let pot = base.initialRisky;
+  for (let y = 0; y < base.years; y++) {
+    pot *= 1 + R;
+    handTotal += pot * fee;
+    pot -= pot * fee;
+  }
+  check(
+    "the total handed over matches the year-by-year sum done by hand",
+    rel(paid.advisor.mean, handTotal) < 1e-9,
+    `sim ${eur(paid.advisor.mean)} vs algebra ${eur(handTotal)}`
+  );
+  check(
+    "the pot left over matches the same hand calculation",
+    rel(paid.final.p50, pot) < 1e-9,
+    `${eur(paid.final.p50)} vs ${eur(pot)}`
+  );
+  check(
+    "the fee quoted on today's pot is the rate times today's pot",
+    paid.advisor.feeOnToday === base.initialRisky * fee &&
+      paid.advisor.fee === fee,
+    `${eur(paid.advisor.feeOnToday)}`
+  );
+  // Measured the same way as the tax ratio: the bill over the profit that was
+  // actually made plus the bill itself. That is not the counterfactual profit —
+  // it is smaller, because the money taken would have compounded too — so the
+  // ratio understates the true cost, and the box says so in words.
+  // Tolerance is 1e-6 rather than 1e-9 here alone: the ratio is anchored on the
+  // MEAN ending value, which is averaged out of the single-precision fan the
+  // chart is drawn from, so it carries about seven significant figures.
+  check(
+    "the share of the gain is the bill over the profit made before it was taken",
+    rel(paid.advisor.gainBeforeAtMean, paid.final.p50 + handTotal - base.initialRisky) < 1e-6 &&
+      rel(paid.advisor.shareOfGainAtMean,
+        handTotal / (paid.final.p50 + handTotal - base.initialRisky)) < 1e-6,
+    `${(paid.advisor.shareOfGainAtMean * 100).toFixed(2)}% of ${eur(paid.advisor.gainBeforeAtMean)}`
+  );
+  check(
+    "that share is below the counterfactual one, as the box warns",
+    paid.advisor.shareOfGainAtMean <
+      (free.final.p50 - paid.final.p50) / (free.final.p50 - base.initialRisky),
+    `${(paid.advisor.shareOfGainAtMean * 100).toFixed(2)}% vs ` +
+      `${((free.final.p50 - paid.final.p50) / (free.final.p50 - base.initialRisky) * 100).toFixed(2)}% truly lost`
+  );
+  // The whole point of charging inside the loop rather than at the end: the pot
+  // falls by more than the bills, because the money taken stops compounding.
+  check(
+    "the pot falls by more than the fees themselves (lost compounding)",
+    free.final.p50 - paid.final.p50 > paid.advisor.mean * 1.0001,
+    `${eur(free.final.p50 - paid.final.p50)} lost for ${eur(paid.advisor.mean)} paid`
+  );
+
+  // The split must survive the charge, otherwise the fee would quietly be a
+  // rebalancing as well as a cost.
+  const mixed = { ...base, initialRisky: 10000, initialSafe: 10000 };
+  const mixedSynth = { ...synth, bond_real: Array(30).fill(0.02) };
+  const mFree = simulate(mixedSynth, mixed);
+  const mPaid = simulate(mixedSynth, { ...mixed, advisorFee: fee });
+  check(
+    "both sleeves are charged at the same rate, so the split is untouched",
+    rel(mPaid.final.p50 / mFree.final.p50, expectedRatio) < 1e-9,
+    `ratio ${(mPaid.final.p50 / mFree.final.p50).toFixed(8)}`
+  );
+
+  // Real data, real tax: the two engines must agree, the ordering must hold, and
+  // the mean must sit above the median because the fee is largest where the
+  // journey went well.
+  const live = {
+    initialRisky: 10000, initialSafe: 5000, monthlyRisky: 400, monthlySafe: 100,
+    years: 15, terRisky: 0.002, terSafe: 0.001, eraStart: 1900, eraEnd: 2025,
+    nPaths: 20000, seed: 7, inflation: 0.02,
+    tax: resolveTaxPlan({ country: "it" }),
+  };
+  const lFree = simulate(data, live);
+  const lPaid = simulate(data, { ...live, advisorFee: 0.01 });
+  check(
+    "on real data a fee always leaves less money, everywhere in the range",
+    lPaid.final.p1 < lFree.final.p1 && lPaid.final.p50 < lFree.final.p50 &&
+      lPaid.final.p99 < lFree.final.p99 && lPaid.highest.p50 < lFree.highest.p50 &&
+      lPaid.lowest.p50 <= lFree.lowest.p50,
+    `median ${eur(lPaid.final.p50)} vs ${eur(lFree.final.p50)}`
+  );
+  // The first bill only lands at the end of the first year, and on a plan this
+  // shape the worst moment is in the first few months — so the lowest point the
+  // page reports is untouched. Worth pinning down: it is the one figure a fee
+  // legitimately does not move.
+  check(
+    "the lowest point is identical, because it happens before the first bill",
+    lPaid.lowest.p1 === lFree.lowest.p1 && lPaid.lowest.p50 === lFree.lowest.p50,
+    `${eur(lPaid.lowest.p1)}`
+  );
+  check(
+    "the average bill is above the middle one — the fee is biggest when it went well",
+    lPaid.advisor.mean > lPaid.advisor.p50 &&
+      lPaid.advisor.p5 < lPaid.advisor.p50 && lPaid.advisor.p50 < lPaid.advisor.p95,
+    `mean ${eur(lPaid.advisor.mean)} vs median ${eur(lPaid.advisor.p50)}`
+  );
+  check(
+    "a lower balance also means a smaller tax bill — the fee is not taxed as a sale",
+    lPaid.tax.total.p50 < lFree.tax.total.p50,
+    `${eur(lPaid.tax.total.p50)} vs ${eur(lFree.tax.total.p50)}`
+  );
+  // Bills are paid at ten or fifteen different dates, so the euros-of-the-day
+  // total must sit strictly between the real total and the fully-grown one.
+  const fEnd = Math.pow(1 + live.inflation, live.years);
+  check(
+    "in euros of the day the fee total is between the real one and the fully grown one",
+    lPaid.nominal.advisor.mean > lPaid.advisor.mean &&
+      lPaid.nominal.advisor.mean < lPaid.advisor.mean * fEnd,
+    `${eur(lPaid.nominal.advisor.mean)} vs ${eur(lPaid.advisor.mean)} today`
+  );
+  check(
+    "the rate and the drag are ratios, so they are the same in both units",
+    lPaid.advisor.dragOnInitial === 1 - Math.pow(0.99, live.years),
+    `${(lPaid.advisor.dragOnInitial * 100).toFixed(2)}%`
+  );
+
+  // The historical overlay charges the fee too. If it did not, the line drawn on
+  // the chart would be a different plan from the bands behind it.
+  const hFree = historicalWindows(data, live);
+  const hPaid = historicalWindows(data, { ...live, advisorFee: 0.01 });
+  check(
+    "the historical replay charges the same fee, window by window",
+    hPaid.length === hFree.length &&
+      hPaid.every((w, i) => w.final < hFree[i].final && w.advisorPaid > 0) &&
+      hFree.every((w) => w.advisorPaid === 0),
+    `${hPaid.length} windows, first pays ${eur(hPaid[0].advisorPaid)}`
+  );
+  // Same constant-return world, both engines: the closed form pins them together.
+  const wFree = historicalWindows(synth, base)[0];
+  const wPaid = historicalWindows(synth, { ...base, advisorFee: fee })[0];
+  check(
+    "both engines agree on the fee to the last cent",
+    rel(wPaid.advisorPaid, handTotal) < 1e-9 &&
+      rel(wPaid.final, paid.final.p50) < 1e-9 &&
+      rel(wFree.final, free.final.p50) < 1e-9,
+    `replay ${eur(wPaid.advisorPaid)} vs simulation ${eur(paid.advisor.mean)}`
+  );
+}
+
+// =====================================================================
+console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian");
 // =====================================================================
 {
   const html = readFileSync(join(HERE, "../index.html"), "utf8");
@@ -888,6 +1080,87 @@ console.log("\n12. TRANSLATIONS — the page must say the same thing in Italian"
     badHoles.length === 0,
     badHoles.length ? badHoles.slice(0, 5).join(", ") : `${jsKeys.length} entries checked`
   );
+
+  // ---- every {placeholder} must actually be filled by the code that asks for
+  // the string. t() leaves an unknown name in place rather than throwing, so a
+  // renamed argument shows up as a literal "{rate}" on the page — invisible to
+  // every other check here, and to any test that does not read the sentence.
+  {
+    // Split an object literal on its top-level commas: quotes and nested
+    // brackets must not be treated as separators.
+    const topLevel = (s) => {
+      const out = [];
+      let depth = 0;
+      let cur = "";
+      let quote = null;
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (quote) {
+          cur += c;
+          if (c === quote && s[i - 1] !== "\\") quote = null;
+          continue;
+        }
+        if (c === '"' || c === "'" || c === "`") quote = c;
+        else if ("{[(".includes(c)) depth++;
+        else if ("}])".includes(c)) depth--;
+        else if (c === "," && depth === 0) {
+          out.push(cur);
+          cur = "";
+          continue;
+        }
+        cur += c;
+      }
+      out.push(cur);
+      return out;
+    };
+
+    const problems = [];
+    let calls = 0;
+    for (const file of ["app.js", "chart.js", "tax.js", "engine.js", "i18n.js"]) {
+      const src = readFileSync(join(HERE, "../js", file), "utf8");
+      const call = /\bt\(\s*"([^"]+)"\s*,\s*\{/g;
+      for (let m; (m = call.exec(src)); ) {
+        const key = m[1];
+        let depth = 0;
+        let end = -1;
+        for (let i = call.lastIndex - 1; i < src.length; i++) {
+          if (src[i] === "{") depth++;
+          else if (src[i] === "}" && --depth === 0) {
+            end = i;
+            break;
+          }
+        }
+        const given = new Set();
+        let spread = false;
+        for (const part of topLevel(src.slice(call.lastIndex, end))) {
+          const named = part.match(/^\s*(?:"([^"]+)"|([A-Za-z_$][\w$]*))\s*:/);
+          const shorthand = part.match(/^\s*([A-Za-z_$][\w$]*)\s*$/);
+          if (named) given.add(named[1] || named[2]);
+          else if (shorthand) given.add(shorthand[1]);
+          else if (/^\s*\.\.\./.test(part)) spread = true;
+        }
+        const english = (STRINGS[key] && STRINGS[key].en) || englishBlocks.get(key);
+        if (english === undefined) {
+          problems.push(`${file}: no English for ${key}`);
+          continue;
+        }
+        calls++;
+        if (spread) continue; // the names cannot be known without running it
+        const want = new Set([...english.matchAll(/\{(\w+)\}/g)].map((h) => h[1]));
+        for (const name of want) {
+          if (!given.has(name)) problems.push(`${file} ${key}: {${name}} never filled`);
+        }
+        for (const name of given) {
+          if (!want.has(name)) problems.push(`${file} ${key}: ${name} unused`);
+        }
+      }
+    }
+    check(
+      "every placeholder is filled by the code that asks for the string",
+      problems.length === 0,
+      problems.length ? problems.slice(0, 5).join("; ") : `${calls} parameterised calls`
+    );
+  }
 
   // app.js fills numbers into <span id> holes inside translated prose, so a
   // missing id in the Italian would silently blank a figure on the page.

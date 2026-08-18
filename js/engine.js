@@ -21,7 +21,11 @@
  *    "worst dip" figure honest, since a year can end flat after falling 30%.
  * 3. Contributions are added at each month end. Fund costs (TER) are charged
  *    annually against each sleeve.
- * 4. Tax, if a country is selected. See js/tax.js for the rules; the order in
+ * 4. A financial consultant's fee, if one is set: a percentage of the whole
+ *    balance, taken out once a year, pro rata from both sleeves so the split is
+ *    untouched. It is charged like the funds' own fee — it lowers the balance,
+ *    and therefore the eventual gain, rather than being modelled as a sale.
+ * 5. Tax, if a country is selected. See js/tax.js for the rules; the order in
  *    which the three kinds of tax bite is spelled out at the month loop below.
  *
  * All randomness comes from a seeded PRNG, so identical inputs always produce
@@ -152,6 +156,7 @@ export const DEFAULTS = {
   years: 10,
   terRisky: 0.002, // 0.20% — typical world-equity ETF
   terSafe: 0.001, // 0.10% — typical euro government bond ETF
+  advisorFee: 0, // fraction of the whole balance paid to a consultant each year
   eraStart: 1900,
   eraEnd: 2025,
   inflation: 0.02, // ECB target, used only for the nominal view
@@ -216,6 +221,12 @@ export function simulate(data, optsIn = {}, onProgress) {
   const maxDDN = new Float64Array(nPaths);
   const worstGapN = new Float64Array(nPaths);
 
+  // what the consultant was paid, per path, added up over the whole period —
+  // once in today's euros and once in the euros of each billing date, for the
+  // same reason the yearly taxes are counted twice (see below).
+  const advPaid = new Float64Array(nPaths);
+  const advPaidN = new Float64Array(nPaths);
+
   // tax actually handed over, per path, split by when it was paid
   const taxYearly = new Float64Array(nPaths); // yearly charges, today's euros
   const taxExit = new Float64Array(nPaths); // the bill on the final sale
@@ -249,7 +260,9 @@ export function simulate(data, optsIn = {}, onProgress) {
   const bridgeBd = new Float64Array(12);
   const progressEvery = Math.max(1, Math.floor(nPaths / 50));
 
-  // Tax constants hoisted out of the hot loop.
+  // Cost constants hoisted out of the hot loop.
+  const advFee = Math.max(0, Math.min(1, o.advisorFee || 0));
+  const advOn = advFee > 0;
   const taxOn = plan.enabled;
   const wMonthly = taxOn ? plan.wealthRate / 12 : 0;
   const yEqM = taxOn ? plan.equityYield / 12 : 0;
@@ -272,6 +285,8 @@ export function simulate(data, optsIn = {}, onProgress) {
     let lastExit = 0; // the exit bill if you sold at the last month, today's euros
     let paidYearlyNom = 0; // the same charges, each counted in the euros of its day
     let lastExitNom = 0; // the exit bill in euros of the final month
+    let advisor = 0; // paid to the consultant so far, today's euros
+    let advisorNom = 0; // the same, each bill in the euros of its own year
 
     let lo = value;
     let hi = value;
@@ -343,13 +358,24 @@ export function simulate(data, optsIn = {}, onProgress) {
         risky *= Math.exp(bridgeEq[m]);
         safe *= Math.exp(bridgeBd[m]);
 
+        // 2. the consultant's bill, once a year, on whatever the pot is worth
+        //    then — pro rata from both sleeves, so the split is untouched.
+        if (advOn && m === 11) {
+          const aR = risky * advFee;
+          const aS = safe * advFee;
+          risky -= aR;
+          safe -= aS;
+          advisor += aR + aS;
+          advisorNom += (aR + aS) * f;
+        }
+
         if (taxOn) {
-          // 2. the funds earn dividends and coupons on the capital invested.
+          // 3. the funds earn dividends and coupons on the capital invested.
           //    Accrued now, taxed at the end of the tax year.
           if (yEqM > 0) accR += risky * f * yEqM;
           if (yBdM > 0) accS += safe * f * yBdM;
 
-          // 3. the yearly charge on the whole balance, in twelve small slices
+          // 4. the yearly charge on the whole balance, in twelve small slices
           //    (closer to the quarterly pro-rata way it is really billed than
           //    one year-end hit would be). Owed win or lose.
           if (wMonthly > 0) {
@@ -362,7 +388,7 @@ export function simulate(data, optsIn = {}, onProgress) {
           }
         }
 
-        // 4. contribution lands at month end, so it earns no return this month.
+        // 5. contribution lands at month end, so it earns no return this month.
         //    It is money already taxed, so it raises the cost base.
         risky += o.monthlyRisky;
         safe += o.monthlySafe;
@@ -370,7 +396,7 @@ export function simulate(data, optsIn = {}, onProgress) {
           bR += o.monthlyRisky * f;
           bS += o.monthlySafe * f;
 
-          // 5. end of the tax year: settle the tax on this year's income
+          // 6. end of the tax year: settle the tax on this year's income
           if (m === 11) {
             if (accR > 0) {
               const tR = incomeTaxNominal(accR, plan.equityIncomeRate, plan.equityIncomeAllowance);
@@ -400,7 +426,7 @@ export function simulate(data, optsIn = {}, onProgress) {
           if (safe < 0) safe = 0;
         }
 
-        // 6. what you would actually walk away with if you sold this month:
+        // 7. what you would actually walk away with if you sold this month:
         //    the balance minus the tax the sale itself would trigger.
         if (taxOn) {
           lastExitNom = exitTaxNominal(risky * f, bR, safe * f, bS, plan);
@@ -444,6 +470,8 @@ export function simulate(data, optsIn = {}, onProgress) {
     taxExit[i] = lastExit;
     taxYearlyN[i] = paidYearlyNom;
     taxExitN[i] = lastExitNom;
+    advPaid[i] = advisor;
+    advPaidN[i] = advisorNom;
 
     if (onProgress && i % progressEvery === 0) onProgress(i / nPaths);
   }
@@ -517,6 +545,30 @@ export function simulate(data, optsIn = {}, onProgress) {
   const medFinal = q(sortedFinal, 50);
   const realTax = taxSummary(taxYearly, taxExit, medFinal, totalPaidIn);
 
+  // ------------------------------------------------------------- consultant
+  // The AVERAGE bill leads, because a fee charged on the balance is biggest in
+  // exactly the journeys that went well: the mean is pulled up by them, and the
+  // median would flatter the arrangement. The range is kept for the detail box.
+  const advisorSummary = (arr, meanFinalHere, paidInHere) => {
+    let sum = 0;
+    for (let i = 0; i < nPaths; i++) sum += arr[i];
+    const meanAdv = sum / nPaths;
+    const s = Float64Array.from(arr).sort();
+    // Compared with the gain that was actually made plus the bill itself. Like
+    // the tax ratio above it understates the real cost, because the money handed
+    // over would also have gone on compounding.
+    const gainBefore = meanFinalHere + meanAdv - paidInHere;
+    return {
+      mean: meanAdv,
+      p5: q(s, 5),
+      p50: q(s, 50),
+      p95: q(s, 95),
+      gainBeforeAtMean: gainBefore,
+      shareOfGainAtMean: gainBefore > 0 ? meanAdv / gainBefore : 0,
+    };
+  };
+  const meanFinalReal = mean[nPts - 1];
+
   return {
     opts: o,
     tax: {
@@ -529,6 +581,19 @@ export function simulate(data, optsIn = {}, onProgress) {
         medFinal * factorEnd,
         totalPaidInNom
       ),
+    },
+    advisor: {
+      fee: advFee,
+      enabled: advOn,
+      // Exactly true, and the only honest way to state the cost *with* the lost
+      // compounding in it: whatever was invested at the start ends this much
+      // smaller than it would have, whatever the market did.
+      dragOnInitial: 1 - Math.pow(1 - advFee, o.years),
+      // The fee applied to the pot as it stands today: not a bill anyone will
+      // ever receive — the first one lands a year later, on a bigger balance —
+      // but the one figure a reader can check against their own statement.
+      feeOnToday: start * advFee,
+      ...advisorSummary(advPaid, meanFinalReal, totalPaidIn),
     },
     nMonths,
     nPts,
@@ -610,6 +675,7 @@ export function simulate(data, optsIn = {}, onProgress) {
         p50: q(sortedGapN, 50),
       },
       probBelowPaidIn: nBelowPaidNom / nPaths,
+      advisor: advisorSummary(advPaidN, meanFinalReal * factorEnd, totalPaidInNom),
     },
     era: {
       start: o.eraStart,
@@ -641,6 +707,8 @@ export function historicalWindows(data, optsIn = {}) {
   const infFactor = new Float64Array(nMonths + 1);
   for (let t = 0; t <= nMonths; t++) infFactor[t] = Math.pow(1 + o.inflation, t / 12);
 
+  const advFee = Math.max(0, Math.min(1, o.advisorFee || 0));
+  const advOn = advFee > 0;
   const taxOn = plan.enabled;
   const wMonthly = taxOn ? plan.wealthRate / 12 : 0;
   const yEqM = taxOn ? plan.equityYield / 12 : 0;
@@ -657,6 +725,7 @@ export function historicalWindows(data, optsIn = {}) {
     let accS = 0;
     let taxPaid = 0; // yearly charges only; the exit bill is added at the end
     let lastExit = 0;
+    let advisor = 0; // paid to the consultant over the window, today's euros
 
     const path = new Array(nMonths + 1);
     path[0] = risky + safe;
@@ -676,6 +745,14 @@ export function historicalWindows(data, optsIn = {}) {
         const f = infFactor[t];
         risky *= stepE;
         safe *= stepB;
+
+        if (advOn && m === 11) {
+          const aR = risky * advFee;
+          const aS = safe * advFee;
+          risky -= aR;
+          safe -= aS;
+          advisor += aR + aS;
+        }
 
         if (taxOn) {
           if (yEqM > 0) accR += risky * f * yEqM;
@@ -745,6 +822,7 @@ export function historicalWindows(data, optsIn = {}) {
       taxYearly: taxPaid,
       taxExit: lastExit,
       taxPaid: taxPaid + lastExit,
+      advisorPaid: advisor,
       path,
     });
   }

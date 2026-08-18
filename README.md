@@ -36,6 +36,11 @@ two funds, and how many years you are investing for. It then answers:
   on the first screen, not behind an "advanced" heading, and a line underneath
   says in words what the chosen unit means, since a label alone cannot carry that
   difference.
+- **A consultant's fee, if you pay one** — a percentage of *everything you hold*,
+  taken out once a year. Tick the box next to your plan and every figure on the
+  page becomes the after-fee one; its own section says how much went to them on
+  average, what share of the profit that is, and — as plain arithmetic rather than
+  a simulation — how much it takes off money invested today.
 - **Tax** — Italy or the UK, computed properly (see below), or switched off to
   show the gross figures.
 - **What actually happened** — every real historical window of that length,
@@ -149,7 +154,7 @@ A minute later the app is live at the link at the top of this file.
 ## Tests
 
 ```sh
-npm test           # node tests/verify.mjs  →  90 checks
+npm test           # node tests/verify.mjs  →  110 checks
 ```
 
 `tests/verify.mjs` is a correctness proof, not a smoke test. Among other things it
@@ -164,6 +169,14 @@ destroyed). The last section checks the translations: that nothing is missing, t
 both languages fill the same placeholders, and that every `<span id>` the code
 writes a number into survives into the Italian — a lost id would silently blank a
 figure on the page rather than fail loudly.
+
+The consultant's fee gets its own section of the suite: that a zero fee changes
+nothing, that 1% a year for ten years leaves exactly `(1 − fee)^years` of the pot,
+that the total handed over matches a year-by-year sum done by hand, that the pot
+falls by *more* than the fees (the compounding they destroyed), that both sleeves
+are charged equally so the split is untouched, that the average bill exceeds the
+median one, and that the Monte Carlo engine and the historical replay agree on the
+fee to the cent.
 
 `tests/calibrate_blocks.mjs` picks the bootstrap's mean block length by matching
 the variance of real historical windows.
