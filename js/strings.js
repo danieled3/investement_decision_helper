@@ -790,6 +790,7 @@ export const STRINGS = {
   "js.years": { en: "{n} years", it: "{n} anni" },
   "js.unit.real": { en: "today's buying power", it: "potere d'acquisto di oggi" },
   "js.unit.nominal": { en: "future euros", it: "euro futuri" },
+  "js.unit.nominal.gbp": { en: "future pounds", it: "sterline future" },
   /* Even a named unit cannot carry the whole difference between a nominal and a
      real amount, so the selected one is spelled out underneath in a sentence. */
   "js.view.note.nominal": {

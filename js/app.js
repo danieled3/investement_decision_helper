@@ -535,7 +535,10 @@ function syncAdvisorFields() {
 // ------------------------------------------------------------------ rendering
 
 function unitLabel() {
-  return t(view === "real" ? "js.unit.real" : "js.unit.nominal");
+  // "today's buying power" names no currency, but "future euros" does — so the
+  // nominal label has a sterling variant chosen by the current symbol.
+  if (view === "real") return t("js.unit.real");
+  return t(currency() === "£" ? "js.unit.nominal.gbp" : "js.unit.nominal");
 }
 
 /** Everything the view needs, already converted into the chosen unit. */
