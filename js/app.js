@@ -911,9 +911,17 @@ function renderAdvisor(v, o) {
   }
 
   const rate = ratePct(a.fee, 2);
-  setTile("tileAdvisor", euro(a.mean), t("js.adv.leadNote", {
-    rate, years: o.years,
-  }));
+  setTile(
+    "tileAdvisor",
+    euro(a.mean),
+    a.gainBeforeAtMean > 0
+      ? t("js.adv.leadNote", {
+          share: pct(a.shareOfGainAtMean, 1),
+          rate,
+          years: o.years,
+        })
+      : t("js.adv.leadNote.noProfit", { rate, years: o.years })
+  );
   $("advisorHint").textContent = t("js.adv.hint", { rate, amount: euro(a.mean) });
   $("advisorIntro").innerHTML = t("js.adv.intro", {
     rate, years: o.years, unit, amount: euro(a.mean),

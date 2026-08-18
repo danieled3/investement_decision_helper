@@ -1090,9 +1090,16 @@ export const STRINGS = {
     en: "A consultant takes {rate} of everything you hold each year — {amount} on today's pot, and more as it grows",
     it: "Un consulente prende ogni anno il {rate} di tutto quello che hai — {amount} sul capitale di oggi, e di più mentre cresce",
   },
+  // The share of the gain leads this note: a percentage of the balance sounds
+  // small, and the same money as a slice of the profit is what it really costs.
   "js.adv.leadNote": {
+    en: "{share} of your profit — {rate} a year of the balance, over {years} years",
+    it: "{share} del tuo guadagno — {rate} all'anno sul capitale, per {years} anni",
+  },
+  // A plan with no profit to share out has nothing to take a share of.
+  "js.adv.leadNote.noProfit": {
     en: "{rate} a year of the balance, over {years} years",
-    it: "il {rate} all'anno sul capitale, per {years} anni",
+    it: "{rate} all'anno sul capitale, per {years} anni",
   },
   "js.adv.hint": {
     en: "{rate} a year — {amount} on average",
