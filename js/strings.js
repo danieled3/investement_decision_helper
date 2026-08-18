@@ -454,10 +454,13 @@ export const STRINGS = {
       ti costano davvero le imposte.`,
   },
   "how.tax.p2": {
-    it: `Il paese <strong>non cambia nient'altro</strong>. I due fondi sono gli stessi
-      dovunque tu viva — un ETF azionario mondiale e un ETF obbligazionario
-      governativo in euro — quindi i rendimenti, la storia e il ricampionamento
-      sono identici. Cambiano solo le imposte.`,
+    it: `Il paese decide anche <strong>a quale governo presti e in che valuta</strong>:
+      titoli di Stato dell'area euro in euro, oppure — per il Regno Unito — gilt in
+      sterline. L'<strong>ETF azionario mondiale è lo stesso dovunque tu viva</strong>:
+      un fondo diversificato a livello globale rende più o meno lo stesso rendimento
+      <em>reale</em> misurato in euro o in sterline, quindi la parte azionaria, la
+      storia e il ricampionamento non cambiano. Cambiano solo le imposte e
+      l'obbligazione.`,
   },
   "how.tax.p3": {
     it: "Il denaro può essere prelevato in tre modi molto diversi, e fanno male in modo diverso:",
@@ -670,10 +673,15 @@ export const STRINGS = {
   "data.etf.p": {
     it: `Fondi realmente investibili, così il passato recente riflette quello che
       avresti davvero potuto comprare: <strong>iShares Core MSCI World UCITS
-      ETF</strong> (IWDA.AS) in euro per le azioni, <strong>iShares Core EUR Govt
-      Bond UCITS ETF</strong> (IEGA.AS) per le obbligazioni, entrambi su prezzi di
-      chiusura giornalieri corretti per i dividendi, deflazionati con l'indice HICP
-      dell'area euro di Eurostat.`,
+      ETF</strong> (IWDA.AS) per le azioni, su prezzi di chiusura giornalieri
+      corretti per i dividendi e deflazionati con l'indice HICP dell'area euro di
+      Eurostat. Per la parte obbligazionaria l'app non segue un fondo — compra un
+      titolo di Stato e lo tiene fino a scadenza — quindi le serve il
+      <strong>rendimento disponibile</strong> ogni anno: i rendimenti a 10 anni e i
+      tassi a breve dell'area euro e del Regno Unito vengono da Eurostat (l'inflazione
+      britannica dalla World Bank, poiché Eurostat non copre più il Regno Unito dopo
+      la Brexit). I dati del fondo obbligazionario nella tabella qui sotto restano
+      solo per contesto.`,
   },
   "data.stats.title": { it: "Che aspetto hanno i numeri" },
   "data.stats.caption": {
