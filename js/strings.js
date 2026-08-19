@@ -57,10 +57,15 @@ export const STRINGS = {
   "sleeve.safe.title": { it: "Parte più sicura — obbligazioni governative in euro" },
   "sleeve.safe.note": {
     it: `Presti denaro a un governo dell'area euro a un tasso fisso e tieni
-      l'obbligazione fino alla scadenza, così riavi il capitale con le cedole —
-      in euro futuri è quasi certo. I rischi veri sono l'inflazione che erode
-      quell'interesse fisso e il fallimento dello Stato, cosa che nessun paese
-      fondatore dell'euro ha mai fatto sul proprio debito in valuta nazionale.`,
+      l'obbligazione fino alla fine — non la vendi mai, quindi il suo prezzo di
+      mercato non conta: riavi il capitale con tutte le cedole. Quando scade, il
+      denaro compra l'obbligazione successiva al tasso che c'è in quel momento, e
+      così via fino alla fine del piano. Un'obbligazione che dura quanto il tuo
+      piano rende certo l'importo in euro futuri; quelle più brevi aggiungono un
+      po' di incertezza a ogni riacquisto. I rischi veri sono l'inflazione che
+      erode quell'interesse fisso e il fallimento dello Stato, cosa che nessun
+      paese fondatore dell'euro ha mai fatto sul proprio debito in valuta
+      nazionale.`,
   },
   // Shown instead of the two above when the tax country is the UK: the bond is a
   // gilt, in pounds.
@@ -69,16 +74,23 @@ export const STRINGS = {
     it: "Parte più sicura — titoli di Stato britannici (gilt)",
   },
   "sleeve.safe.note.gbp": {
-    en: `You lend money to the UK government at a fixed interest rate and hold the
-      gilt to maturity, so you get your money back with its coupons — in future
-      pounds it is close to certain. The real risks are inflation eating that
-      fixed interest, and the government defaulting, which the UK has never done
-      on its own-currency debt.`,
+    en: `You lend money to the UK government at a fixed interest rate and keep the
+      gilt to the end — you never sell it, so its market price never matters: you
+      get your capital back with every coupon. When it matures, the money buys the
+      next gilt at whatever rate is on offer then, and so on until your plan is up.
+      A gilt that lasts as long as your plan makes the future-pound amount certain;
+      shorter ones add a little uncertainty at each re-buy. The real risks are
+      inflation eating that fixed interest, and the government defaulting, which
+      the UK has never done on its own-currency debt.`,
     it: `Presti denaro al governo britannico a un tasso fisso e tieni il gilt fino
-      alla scadenza, così riavi il capitale con le cedole — in sterline future è
-      quasi certo. I rischi veri sono l'inflazione che erode quell'interesse fisso
-      e il fallimento dello Stato, cosa che il Regno Unito non ha mai fatto sul
-      proprio debito in valuta nazionale.`,
+      alla fine — non lo vendi mai, quindi il suo prezzo di mercato non conta:
+      riavi il capitale con tutte le cedole. Quando scade, il denaro compra il gilt
+      successivo al tasso che c'è in quel momento, e così via fino alla fine del
+      piano. Un gilt che dura quanto il tuo piano rende certo l'importo in sterline
+      future; quelli più brevi aggiungono un po' di incertezza a ogni riacquisto. I
+      rischi veri sono l'inflazione che erode quell'interesse fisso e il fallimento
+      dello Stato, cosa che il Regno Unito non ha mai fatto sul proprio debito in
+      valuta nazionale.`,
   },
 
   "field.initial": { it: "Quanto metti oggi" },
