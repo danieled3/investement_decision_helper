@@ -146,9 +146,25 @@
       <input id="advisorOn" type="checkbox" style="width:auto">
       <span data-i18n="field.advisor.check">I pay a financial consultant</span>
     </label>
+    <!-- Two rates, because they are usually not the same: the share fund is what
+         gets advised on, while a bond bought once and held to the end needs no
+         watching and is often left out of the charge. -->
     <div id="advisorFeeRow" style="margin-top:10px" hidden>
-      <label for="advisorFee" data-i18n="field.advisorFee">Their fee, % a year of everything you hold</label>
-      <input id="advisorFee" type="number" min="0" max="5" step="0.05" value="1" inputmode="decimal">
+      <div class="row">
+        <div class="field" style="margin:0">
+          <label for="advisorFeeRisky" data-i18n="field.advisorFee.risky">Their fee on the share ETF, % a year</label>
+          <input id="advisorFeeRisky" type="number" min="0" max="5" step="0.05" value="1" inputmode="decimal">
+        </div>
+        <div class="field" style="margin:0">
+          <label for="advisorFeeSafe" data-i18n="field.advisorFee.safe" data-i18n-eur="field.advisorFee.safe" data-i18n-gbp="field.advisorFee.safe.gbp">Their fee on the bond, % a year</label>
+          <input id="advisorFeeSafe" type="number" min="0" max="5" step="0.05" value="0" inputmode="decimal">
+        </div>
+      </div>
+      <p class="sleeve-note" id="advisorFeeNote" data-i18n="field.advisorFee.note" data-i18n-eur="field.advisorFee.note" data-i18n-gbp="field.advisorFee.note.gbp">
+        Charged on the value of each part, once a year. Many consultants bill on
+        the share fund only, which is why the bond starts at 0 — put the same
+        number in both boxes if yours charges on the whole pot.
+      </p>
     </div>
   </div>
 
@@ -516,10 +532,16 @@
       figure:
       <ul style="margin:8px 0 0">
         <li>
-          A percentage of everything you hold is charged whether the year was good
-          or bad, and it grows as your pot grows, so the bill in the last year is
+          A percentage of what you hold is charged whether the year was good or
+          bad, and it grows as your pot grows, so the bill in the last year is
           usually several times the bill in the first. Fixed fees, hourly advice and
           one-off financial plans do not behave like this at all.
+        </li>
+        <li>
+          Ask what the percentage is actually charged on. Plenty of arrangements
+          bill the share fund and leave a bond you simply hold to the end out of it,
+          and the two boxes above are there so you can put in what yours really
+          does rather than an average of the two.
         </li>
         <li>
           In Italy a consultant's fee is normally paid from your own pocket or
@@ -830,7 +852,7 @@
     <dd>The fund's yearly fee, taken automatically out of the fund's value. 0.20% means <span class="cur">€</span>20 a year on <span class="cur">€</span>10 000. Small numbers, but they compound: 0.5% a year costs about 5% of your money over ten years.</dd>
 
     <dt>Consultant's fee (a percentage of what you hold)</dt>
-    <dd>The commonest way advice and portfolio management are charged: a yearly percentage of everything in the account, not of the profit. 1% on <span class="cur">€</span>100 000 is <span class="cur">€</span>1 000 a year, owed whether the year was good or bad, and it grows as the pot grows. It behaves exactly like the TER above, only much larger — which is why it has its own section.</dd>
+    <dd>The commonest way advice and portfolio management are charged: a yearly percentage of what is in the account, not of the profit. 1% on <span class="cur">€</span>100 000 is <span class="cur">€</span>1 000 a year, owed whether the year was good or bad, and it grows as the pot grows. Often it is not charged on everything — advice on the share fund, nothing on a bond you simply hold to the end — which is why this page asks for a rate for each part. It behaves exactly like the TER above, only much larger, which is why it has its own section.</dd>
 
     <dt>Correlation</dt>
     <dd>Whether two things move together. +1 means always in lockstep, 0 means unrelated, −1 means perfect opposites. Shares and a bond <em>fund</em> have been roughly <b id="dsCorr">0.2</b> in this data — related, but loosely. The bond this plan holds is kept to maturity and has no market price at all, so its correlation with shares is exactly zero: it is not there to zig while shares zag, it is there as a part of the pot that simply cannot fall.</dd>

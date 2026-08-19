@@ -12,7 +12,7 @@
 import { createFanChart, createHistogram } from "./chart.js";
 import { DEFAULTS, currentYield } from "./engine.js";
 import {
-  t, num, count, euro, pct, signedPct, ratePct,
+  t, num, count, euro, pct, signedPct, ratePct, pctPhrase, ratePhrase,
   initI18n, setLang, getLang, onLangChange, setCurrency, currency,
 } from "./i18n.js";
 import {
@@ -46,7 +46,8 @@ const FIELDS = {
   years: "int",
   bondMaturity: "int",
   advisorOn: "bool",
-  advisorFee: "pct",
+  advisorFeeRisky: "pct",
+  advisorFeeSafe: "pct",
   terRisky: "pct",
   inflation: "pct",
   era: "str",
@@ -90,9 +91,12 @@ function readForm() {
     years: Math.round(field("years", 1, 40, 10)),
     // How long each government bond runs before it matures and is replaced.
     bondMaturity: Math.round(field("bondMaturity", 1, 10, 10)),
-    // The percentage stays in the box when the flag is cleared, so that unticking
-    // and re-ticking does not lose it — but a cleared flag must mean zero.
-    advisorFee: $("advisorOn").checked ? field("advisorFee", 0, 5, 1) / 100 : 0,
+    // The percentages stay in the boxes when the flag is cleared, so that
+    // unticking and re-ticking does not lose them — but a cleared flag must mean
+    // zero. One rate per sleeve: consultants usually charge on the share fund and
+    // leave a bond that is simply held alone.
+    advisorFeeRisky: $("advisorOn").checked ? field("advisorFeeRisky", 0, 5, 1) / 100 : 0,
+    advisorFeeSafe: $("advisorOn").checked ? field("advisorFeeSafe", 0, 5, 0) / 100 : 0,
     terRisky: field("terRisky", 0, 5, 0.2) / 100,
     inflation: field("inflation", -5, 20, 2) / 100,
     eraStart,
@@ -118,8 +122,13 @@ function writeHash(o) {
   p.set("v", view);
   p.set("l", getLang());
   p.set("i", (o.inflation * 100).toFixed(2));
-  // Absent rather than zero when nobody is paid, so the ordinary link stays short.
-  if (o.advisorFee > 0) p.set("af", (o.advisorFee * 100).toFixed(2));
+  // Absent rather than zero when nobody is paid, so the ordinary link stays
+  // short. Once one of them is set BOTH are written, or a link would be
+  // ambiguous about whether the bond was charged or just left at its default.
+  if (o.advisorFeeRisky > 0 || o.advisorFeeSafe > 0) {
+    p.set("af", (o.advisorFeeRisky * 100).toFixed(2));
+    p.set("afb", (o.advisorFeeSafe * 100).toFixed(2));
+  }
   p.set("c", $("taxCountry").value);
   if ($("taxCountry").value === "it") p.set("f", $("taxFund").value);
   if ($("taxCountry").value === "gb") {
@@ -143,16 +152,22 @@ function applyHash() {
   if (p.has("y")) $("years").value = p.get("y");
   if (p.has("bm") && [...$("bondMaturity").options].some((o) => o.value === p.get("bm")))
     $("bondMaturity").value = p.get("bm");
-  // A shared link carries the fee, and the fee implies the flag: a link that
+  // A shared link carries the fees, and a fee implies the flag: a link that
   // arrived with a percentage in it but the box unticked would show one thing and
-  // simulate another. Zero, or anything unreadable, leaves the flag clear.
-  if (p.has("af")) {
-    const fee = parseFloat(p.get("af"));
-    if (Number.isFinite(fee) && fee > 0) {
-      $("advisorFee").value = String(Math.min(5, fee));
-      $("advisorOn").checked = true;
-    }
-  }
+  // simulate another. Either rate above zero ticks it; both zero, or anything
+  // unreadable, leaves the flag clear. An old link with only "af" in it charges
+  // that rate on the share part and nothing on the bond.
+  const advFrom = (key, id) => {
+    if (!p.has(key)) return 0;
+    const fee = parseFloat(p.get(key));
+    if (!Number.isFinite(fee) || fee < 0) return 0;
+    const v = Math.min(5, fee);
+    $(id).value = String(v);
+    return v;
+  };
+  const advEq = advFrom("af", "advisorFeeRisky");
+  const advBd = advFrom("afb", "advisorFeeSafe");
+  if (advEq > 0 || advBd > 0) $("advisorOn").checked = true;
   if (p.has("e") && [...$("era").options].some((o) => o.value === p.get("e"))) {
     $("era").value = p.get("e");
   }
@@ -297,11 +312,14 @@ function updatePlanSummary(o) {
   // its own box — and it says the euro figure, because a percentage of a balance
   // is the one charge people routinely read as "nearly nothing".
   const adv = $("advisorSummary");
-  adv.hidden = o.advisorFee <= 0;
-  if (o.advisorFee > 0) {
+  const advOn = o.advisorFeeRisky > 0 || o.advisorFeeSafe > 0;
+  adv.hidden = !advOn;
+  if (advOn) {
     adv.textContent = t("js.adv.planSummary", {
-      rate: ratePct(o.advisorFee, 2),
-      amount: euro(start * o.advisorFee),
+      rates: advisorRates(o.advisorFeeRisky, o.advisorFeeSafe),
+      amount: euro(
+        o.initialRisky * o.advisorFeeRisky + o.initialSafe * o.advisorFeeSafe
+      ),
     });
   }
 }
@@ -384,7 +402,8 @@ function wireControls() {
     $("years").value = 10;
     $("bondMaturity").value = "10";
     $("advisorOn").checked = false;
-    $("advisorFee").value = 1;
+    $("advisorFeeRisky").value = 1;
+    $("advisorFeeSafe").value = 0;
     syncAdvisorFields();
     $("terRisky").value = 0.2;
     $("inflation").value = 2;
@@ -461,7 +480,7 @@ function syncViewNote() {
   $("viewNote").textContent = view === "nominal"
     ? t("js.view.note.nominal", {
       years: $("years").value,
-      infl: ratePct(Number($("inflation").value) / 100),
+      infl: ratePhrase(Number($("inflation").value) / 100),
     })
     : t("js.view.note.real");
 }
@@ -563,6 +582,26 @@ function syncAdvisorFields() {
 }
 
 // ------------------------------------------------------------------ rendering
+
+/**
+ * The two consultant rates as one phrase. Four shapes, because "1% on the shares
+ * and nothing on the bond" — the default, and what most consultants actually
+ * charge — reads nothing like "1% of everything you hold", and printing two
+ * percentages side by side whatever they are would make the common case obscure.
+ * Plain text, so it can go into a textContent as well as an innerHTML.
+ */
+function advisorRates(feeEq, feeBd) {
+  const gbp = currency() === "£";
+  const key = (k) => (gbp ? `js.adv.rates.${k}.gbp` : `js.adv.rates.${k}`);
+  // ratePhrase, not ratePct: these land in the middle of an Italian sentence,
+  // where the percentage needs the article that matches how it is spoken.
+  const rateEq = ratePhrase(feeEq, 2);
+  const rateBd = ratePhrase(feeBd, 2);
+  if (feeEq === feeBd) return t("js.adv.rates.same", { rate: rateEq });
+  if (feeBd === 0) return t(key("bondFree"), { rateEq });
+  if (feeEq === 0) return t(key("eqFree"), { rateBd });
+  return t(key("split"), { rateEq, rateBd });
+}
 
 function unitLabel() {
   // "today's buying power" names no currency, but "future euros" does — so the
@@ -767,8 +806,8 @@ function render() {
     ? (o.initialRisky + o.monthlyRisky * o.years * 12) / alloc
     : 0;
   $("allocNote").textContent = t("js.allocNote", {
-    risky: pct(riskyShare, 0),
-    safe: pct(1 - riskyShare, 0),
+    risky: pctPhrase(riskyShare, 0),
+    safe: pctPhrase(1 - riskyShare, 0),
   });
 
   setStatus(t("js.status.summary", {
@@ -941,7 +980,7 @@ function renderTax(v, o) {
 
   $("taxCallout").innerHTML = t("js.tax.callout", {
     total: euro(tx.total.p50),
-    share: pct(tx.shareOfGainAtMedian, 0),
+    share: pctPhrase(tx.shareOfGainAtMedian, 0),
     gross: euro(gross),
   });
 }
@@ -974,7 +1013,7 @@ function renderAdvisor(v, o) {
     return;
   }
 
-  const rate = ratePct(a.fee, 2);
+  const rates = advisorRates(a.feeRisky, a.feeSafe);
   setTile(
     "tileAdvisor",
     euro(a.mean),
@@ -983,11 +1022,11 @@ function renderAdvisor(v, o) {
           share: pct(a.shareOfGainAtMean, 1),
           years: o.years,
         })
-      : t("js.adv.leadNote.noProfit", { rate, years: o.years })
+      : t("js.adv.leadNote.noProfit", { rates, years: o.years })
   );
-  $("advisorHint").textContent = t("js.adv.hint", { rate, amount: euro(a.mean) });
+  $("advisorHint").textContent = t("js.adv.hint", { rates, amount: euro(a.mean) });
   $("advisorIntro").innerHTML = t("js.adv.intro", {
-    rate, years: o.years, unit, amount: euro(a.mean),
+    rates, years: o.years, unit, amount: euro(a.mean),
   });
 
   setTile("tileAdvTotal", euro(a.mean), t("js.adv.note.total", {
@@ -999,22 +1038,51 @@ function renderAdvisor(v, o) {
   setTile("tileAdvDrag", pct(a.dragOnInitial, 1), t("js.adv.note.drag", {
     years: o.years,
   }));
-  $("advisorDragNote").innerHTML = t("js.adv.dragNote", {
-    rate,
-    years: o.years,
-    drag: pct(a.dragOnInitial, 1),
-    left: pct(1 - a.dragOnInitial, 1),
-  });
+  // One rate: one arithmetic drag. Two rates: two, and the headline is a blend of
+  // them, which has to be said or it looks like a rate nobody is paying. The
+  // sentence leads with the part that is actually charged — leading with "0.00%
+  // costs 0.0% of the share part" would be true and useless.
+  // Every percentage here sits inside a sentence rather than on a tile, so they
+  // go through the …Phrase forms, which carry the Italian article.
+  const blend = { years: o.years, drag: pctPhrase(a.dragOnInitial, 1) };
+  if (a.sameRate) {
+    $("advisorDragNote").innerHTML = t("js.adv.dragNote", {
+      ...blend,
+      rate: ratePhrase(a.feeRisky, 2),
+      left: pctPhrase(1 - a.dragOnInitial, 1),
+    });
+  } else if (a.feeRisky === 0) {
+    $("advisorDragNote").innerHTML = t("js.adv.dragNote.bondOnly", {
+      ...blend,
+      rateBd: ratePhrase(a.feeSafe, 2),
+      dragBd: pctPhrase(a.dragSafe, 1),
+    });
+  } else {
+    $("advisorDragNote").innerHTML = t("js.adv.dragNote.split", {
+      ...blend,
+      rateEq: ratePhrase(a.feeRisky, 2),
+      dragEq: pctPhrase(a.dragRisky, 1),
+      bond:
+        a.feeSafe > 0
+          ? t("js.adv.drag.bondPaid", {
+              rateBd: ratePhrase(a.feeSafe, 2),
+              dragBd: pctPhrase(a.dragSafe, 1),
+            })
+          : t("js.adv.drag.bondFree"),
+    });
+  }
 
   // ---- exactly what the model did, so the number can be checked ----
   const rules = [];
   rules.push("<li>" + t("js.adv.rule.basis", {
-    rate,
+    rates,
     amount: euro(a.feeOnToday),
     pot: euro(o.initialRisky + o.initialSafe),
   }) + "</li>");
   rules.push("<li>" + t("js.adv.rule.once") + "</li>");
-  rules.push("<li>" + t("js.adv.rule.prorata") + "</li>");
+  // Same rate on both parts leaves the split alone; different rates do not, and
+  // claiming otherwise would be the one sentence on this page that is false.
+  rules.push("<li>" + t(a.sameRate ? "js.adv.rule.prorata" : "js.adv.rule.perSleeve") + "</li>");
   rules.push("<li>" + t("js.adv.rule.compounding", { years: o.years }) + "</li>");
   rules.push("<li>" + t(v.tax.enabled ? "js.adv.rule.tax" : "js.adv.rule.taxOff") + "</li>");
   rules.push("<li>" + t("js.adv.rule.mean") + "</li>");
@@ -1022,7 +1090,7 @@ function renderAdvisor(v, o) {
 
   $("advisorCallout").innerHTML = t("js.adv.callout", {
     amount: euro(a.mean),
-    share: pct(a.shareOfGainAtMean, 0),
+    share: pctPhrase(a.shareOfGainAtMean, 0),
     years: o.years,
     unit,
   });

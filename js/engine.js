@@ -21,10 +21,11 @@
  *    "worst dip" figure honest, since a year can end flat after falling 30%.
  * 3. Contributions are added at each month end. Fund costs (TER) are charged
  *    annually against each sleeve.
- * 4. A financial consultant's fee, if one is set: a percentage of the whole
- *    balance, taken out once a year, pro rata from both sleeves so the split is
- *    untouched. It is charged like the funds' own fee — it lowers the balance,
- *    and therefore the eventual gain, rather than being modelled as a sale.
+ * 4. A financial consultant's fee, if one is set: a percentage of the balance
+ *    taken out once a year, with its own rate for each sleeve — the share fund
+ *    is what usually gets advised on, the bond bought once and held often is
+ *    not. It is charged like the funds' own fee — it lowers the balance, and
+ *    therefore the eventual gain, rather than being modelled as a sale.
  * 5. Tax, if a country is selected. See js/tax.js for the rules; the order in
  *    which the three kinds of tax bite is spelled out at the month loop below.
  *
@@ -231,7 +232,11 @@ export const DEFAULTS = {
   years: 10,
   terRisky: 0.002, // 0.20% — typical world-equity ETF
   terSafe: 0, // a directly-held bond has no fund fee; kept for compatibility
-  advisorFee: 0, // fraction of the whole balance paid to a consultant each year
+  // What a consultant charges each year, as a fraction of the balance — one rate
+  // per sleeve, because in practice the share fund is what gets advised on and
+  // the bond, bought once and held, often is not. `advisorFee` sets both at once
+  // and is the fallback when a caller gives only one number.
+  advisorFee: 0,
   bondMaturity: 10, // years; the bond is held to maturity, then rolled into a new one
   currency: null, // "eur" / "gbp"; null derives it from the tax country
   eraStart: 1900,
@@ -252,6 +257,13 @@ export const DEFAULTS = {
 export function currencyOf(o, plan) {
   if (o.currency) return o.currency;
   return plan && typeof plan.id === "string" && plan.id.startsWith("gb") ? "gbp" : "eur";
+}
+
+/** One sleeve's consultant rate: its own number if given, otherwise the single
+ *  `advisorFee` that means "the same rate on everything". Clamped to 0..1. */
+function advRate(own, both) {
+  const v = own === undefined || own === null ? both : own;
+  return Math.max(0, Math.min(1, v || 0));
 }
 
 /**
@@ -350,8 +362,9 @@ export function simulate(data, optsIn = {}, onProgress) {
   const progressEvery = Math.max(1, Math.floor(nPaths / 50));
 
   // Cost constants hoisted out of the hot loop.
-  const advFee = Math.max(0, Math.min(1, o.advisorFee || 0));
-  const advOn = advFee > 0;
+  const advFeeEq = advRate(o.advisorFeeRisky, o.advisorFee);
+  const advFeeBd = advRate(o.advisorFeeSafe, o.advisorFee);
+  const advOn = advFeeEq > 0 || advFeeBd > 0;
   const taxOn = plan.enabled;
   const wMonthly = taxOn ? plan.wealthRate / 12 : 0;
   const yEqM = taxOn ? plan.equityYield / 12 : 0;
@@ -466,11 +479,12 @@ export function simulate(data, optsIn = {}, onProgress) {
         risky *= Math.exp(bridgeEq[m]);
         safe *= Math.exp(bridgeBd[m]);
 
-        // 2. the consultant's bill, once a year, on whatever the pot is worth
-        //    then — pro rata from both sleeves, so the split is untouched.
+        // 2. the consultant's bill, once a year, on whatever each sleeve is
+        //    worth then. Each sleeve pays its own rate, so when the two rates
+        //    differ the fee slowly tilts the split towards the cheaper sleeve.
         if (advOn && m === 11) {
-          const aR = risky * advFee;
-          const aS = safe * advFee;
+          const aR = risky * advFeeEq;
+          const aS = safe * advFeeBd;
           risky -= aR;
           safe -= aS;
           advisor += aR + aS;
@@ -676,6 +690,15 @@ export function simulate(data, optsIn = {}, onProgress) {
     };
   };
   const meanFinalReal = mean[nPts - 1];
+  // How much of the money is exposed to the share-side rate, for blending the
+  // two drags into one headline number: the opening split if there is one,
+  // otherwise the split of the monthly payments, otherwise half and half.
+  const wEqForDrag =
+    start > 0
+      ? o.initialRisky / start
+      : monthlyTotal > 0
+        ? o.monthlyRisky / monthlyTotal
+        : 0.5;
 
   return {
     opts: o,
@@ -691,16 +714,24 @@ export function simulate(data, optsIn = {}, onProgress) {
       ),
     },
     advisor: {
-      fee: advFee,
+      feeRisky: advFeeEq,
+      feeSafe: advFeeBd,
+      sameRate: advFeeEq === advFeeBd,
       enabled: advOn,
-      // Exactly true, and the only honest way to state the cost *with* the lost
-      // compounding in it: whatever was invested at the start ends this much
-      // smaller than it would have, whatever the market did.
-      dragOnInitial: 1 - Math.pow(1 - advFee, o.years),
+      // Exactly true per sleeve, and the only honest way to state the cost
+      // *with* the lost compounding in it: whatever was invested at the start
+      // ends this much smaller than it would have, whatever the market did.
+      // Each sleeve compounds its own fee, so the two drags are separate; the
+      // headline one blends them by what actually goes into each sleeve.
+      dragRisky: 1 - Math.pow(1 - advFeeEq, o.years),
+      dragSafe: 1 - Math.pow(1 - advFeeBd, o.years),
+      dragOnInitial:
+        wEqForDrag * (1 - Math.pow(1 - advFeeEq, o.years)) +
+        (1 - wEqForDrag) * (1 - Math.pow(1 - advFeeBd, o.years)),
       // The fee applied to the pot as it stands today: not a bill anyone will
       // ever receive — the first one lands a year later, on a bigger balance —
       // but the one figure a reader can check against their own statement.
-      feeOnToday: start * advFee,
+      feeOnToday: o.initialRisky * advFeeEq + o.initialSafe * advFeeBd,
       ...advisorSummary(advPaid, meanFinalReal, totalPaidIn),
     },
     nMonths,
@@ -827,8 +858,9 @@ export function historicalWindows(data, optsIn = {}) {
   const infFactor = new Float64Array(nMonths + 1);
   for (let t = 0; t <= nMonths; t++) infFactor[t] = Math.pow(1 + o.inflation, t / 12);
 
-  const advFee = Math.max(0, Math.min(1, o.advisorFee || 0));
-  const advOn = advFee > 0;
+  const advFeeEq = advRate(o.advisorFeeRisky, o.advisorFee);
+  const advFeeBd = advRate(o.advisorFeeSafe, o.advisorFee);
+  const advOn = advFeeEq > 0 || advFeeBd > 0;
   const taxOn = plan.enabled;
   const wMonthly = taxOn ? plan.wealthRate / 12 : 0;
   const yEqM = taxOn ? plan.equityYield / 12 : 0;
@@ -874,8 +906,8 @@ export function historicalWindows(data, optsIn = {}) {
         safe *= stepB;
 
         if (advOn && m === 11) {
-          const aR = risky * advFee;
-          const aS = safe * advFee;
+          const aR = risky * advFeeEq;
+          const aS = safe * advFeeBd;
           risky -= aR;
           safe -= aS;
           advisor += aR + aS;

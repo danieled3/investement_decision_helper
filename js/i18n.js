@@ -146,6 +146,43 @@ export function ratePct(x, forceDigits = null) {
   return pct(x, decimals);
 }
 
+/*
+ * Percentages that sit inside an Italian sentence.
+ *
+ * Italian puts an article in front of a percentage, and which one depends on how
+ * the number is *spoken*, not on how it is written: l'1% (uno), lo 0,5% (zero),
+ * l'8% (otto), l'11% (undici), l'80% (ottanta) — but il 2%, il 12%, il 90%.
+ * Writing "il 1%" is simply wrong, and the numbers here come from the
+ * simulation, so no fixed article in the dictionary can be right for all of
+ * them. These two helpers therefore carry the article with the number, and the
+ * Italian strings that use them leave it out. English gets the bare percentage.
+ */
+function spokenTakesElision(n) {
+  // uno, otto, undici, diciotto, ottanta…ottantanove — the only ones in range
+  // that begin with a vowel when read aloud.
+  return n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n <= 89);
+}
+
+function withItalianArticle(text, x) {
+  const n = Math.floor(Math.abs(x * 100));
+  if (n === 0) return `lo ${text}`; // lo zero virgola cinque per cento
+  return spokenTakesElision(n) ? `l'${text}` : `il ${text}`;
+}
+
+/** A percentage ready to drop into a sentence: "11.8%" / "l'11,8%". */
+export function pctPhrase(x, decimals = 1) {
+  const text = pct(x, decimals);
+  if (lang !== "it" || !Number.isFinite(x)) return text;
+  return withItalianArticle(text, x);
+}
+
+/** The same for a rate written the way a rate is written: "0.20%" / "lo 0,20%". */
+export function ratePhrase(x, forceDigits = null) {
+  const text = ratePct(x, forceDigits);
+  if (lang !== "it" || !Number.isFinite(x)) return text;
+  return withItalianArticle(text, x);
+}
+
 /** A year range, e.g. 1900–2025. Same in both languages, but written once. */
 export function yearRange(a, b) {
   return `${a}–${b}`;

@@ -36,11 +36,16 @@ two funds, and how many years you are investing for. It then answers:
   on the first screen, not behind an "advanced" heading, and a line underneath
   says in words what the chosen unit means, since a label alone cannot carry that
   difference.
-- **A consultant's fee, if you pay one** — a percentage of *everything you hold*,
-  taken out once a year. Tick the box next to your plan and every figure on the
-  page becomes the after-fee one; its own section says how much went to them on
-  average, what share of the profit that is, and — as plain arithmetic rather than
-  a simulation — how much it takes off money invested today.
+- **A consultant's fee, if you pay one** — a percentage of what you hold, taken
+  out once a year, with *its own rate for each part*: 1% on the share ETF and 0%
+  on the bond by default, because that is what most arrangements actually do — the
+  share fund is what gets advised on, a bond bought once and held to the end needs
+  no watching. Tick the box next to your plan and every figure on the page becomes
+  the after-fee one; its own section says how much went to them on average, what
+  share of the profit that is, and — as plain arithmetic rather than a simulation —
+  how much it takes off money invested today. Equal rates leave your share/bond
+  split alone; different ones slowly tilt it towards the cheaper part, and the page
+  says so instead of claiming the fee is neutral.
 - **Tax** — Italy or the UK, computed properly (see below), or switched off to
   show the gross figures.
 - **What actually happened** — every real historical window of that length,
@@ -170,7 +175,7 @@ A minute later the app is live at the link at the top of this file.
 ## Tests
 
 ```sh
-npm test           # node tests/verify.mjs  →  138 checks
+npm test           # node tests/verify.mjs  →  150 checks
 ```
 
 `tests/verify.mjs` is a correctness proof, not a smoke test. Among other things it
@@ -184,15 +189,19 @@ costs what it should, that a UK ISA is identical to no tax, and that
 destroyed). The last section checks the translations: that nothing is missing, that
 both languages fill the same placeholders, and that every `<span id>` the code
 writes a number into survives into the Italian — a lost id would silently blank a
-figure on the page rather than fail loudly.
+figure on the page rather than fail loudly. It also checks the article in front of
+an Italian percentage, which depends on how the number is *spoken* — `l'1%`,
+`lo 0,5%`, `l'11%`, but `il 2%` — so no dictionary entry is allowed to write one
+next to a placeholder the simulation fills.
 
 The consultant's fee gets its own section of the suite: that a zero fee changes
 nothing, that 1% a year for ten years leaves exactly `(1 − fee)^years` of the pot,
 that the total handed over matches a year-by-year sum done by hand, that the pot
-falls by *more* than the fees (the compounding they destroyed), that both sleeves
-are charged equally so the split is untouched, that the average bill exceeds the
+falls by *more* than the fees (the compounding they destroyed), that equal rates
+leave the split untouched, that a share-only fee leaves the bond sleeve *exactly*
+as it was and reports the two drags separately, that the average bill exceeds the
 median one, and that the Monte Carlo engine and the historical replay agree on the
-fee to the cent.
+fee to the cent — per sleeve as well as in total.
 
 `tests/calibrate_blocks.mjs` picks the bootstrap's mean block length by matching
 the variance of real historical windows.

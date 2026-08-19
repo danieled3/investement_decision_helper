@@ -116,7 +116,27 @@ export const STRINGS = {
   },
 
   "field.advisor.check": { it: "Pago un consulente finanziario" },
-  "field.advisorFee": { it: "Il suo compenso, % all'anno su tutto quello che hai" },
+  "field.advisorFee.risky": { it: "Il suo compenso sull'ETF azionario, % all'anno" },
+  "field.advisorFee.safe": { it: "Il suo compenso sull'obbligazione, % all'anno" },
+  "field.advisorFee.note": {
+    it: `Calcolato sul valore di ciascuna parte, una volta all'anno. Molti
+      consulenti fatturano solo sull'ETF azionario, ed è per questo che
+      l'obbligazione parte da 0 — metti lo stesso numero in entrambe le caselle
+      se il tuo lo calcola su tutto il capitale.`,
+  },
+  "field.advisorFee.note.gbp": {
+    en: `Charged on the value of each part, once a year. Many consultants bill on
+      the share fund only, which is why the gilt starts at 0 — put the same
+      number in both boxes if yours charges on the whole pot.`,
+    it: `Calcolato sul valore di ciascuna parte, una volta all'anno. Molti
+      consulenti fatturano solo sull'ETF azionario, ed è per questo che il gilt
+      parte da 0 — metti lo stesso numero in entrambe le caselle se il tuo lo
+      calcola su tutto il capitale.`,
+  },
+  "field.advisorFee.safe.gbp": {
+    en: "Their fee on the gilt, % a year",
+    it: "Il suo compenso sul gilt, % all'anno",
+  },
 
   "plan.sum.start": { it: 'Parti con <b id="sumStart">€15 000</b>' },
   "plan.sum.monthly": { it: 'Aggiungi <b id="sumMonthly">€500</b> ogni mese' },
@@ -311,11 +331,17 @@ export const STRINGS = {
       errori. Due cose che vale la pena sapere prima di giudicare il numero:
       <ul style="margin:8px 0 0">
         <li>
-          Una percentuale su tutto quello che hai si paga sia che l'anno sia andato
-          bene sia che sia andato male, e cresce mentre cresce il capitale: il conto
+          Una percentuale su quello che hai si paga sia che l'anno sia andato bene
+          sia che sia andato male, e cresce mentre cresce il capitale: il conto
           dell'ultimo anno è di solito diverse volte quello del primo. Un compenso
           fisso, una consulenza a ore o un piano finanziario una volta sola non si
           comportano affatto così.
+        </li>
+        <li>
+          Chiedi su cosa viene calcolata davvero quella percentuale. Molti accordi
+          la applicano all'ETF azionario e lasciano fuori un'obbligazione che tieni
+          semplicemente fino alla scadenza, e le due caselle qui sopra ci sono
+          perché tu possa mettere quello che fa il tuo, non una media dei due.
         </li>
         <li>
           In Italia il compenso del consulente si paga normalmente di tasca propria
@@ -681,7 +707,7 @@ export const STRINGS = {
     <dd>Il costo annuo del fondo, prelevato automaticamente dal valore del fondo stesso. 0,20% significa <span class="cur">€</span>20 all'anno su <span class="cur">€</span>10 000. Numeri piccoli, ma si accumulano: 0,5% all'anno costa circa il 5% del tuo denaro in dieci anni.</dd>
 
     <dt>Compenso del consulente (una percentuale di quello che hai)</dt>
-    <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su tutto quello che c'è nel conto, non sul guadagno. L'1% su <span class="cur">€</span>100 000 fa <span class="cur">€</span>1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Si comporta esattamente come il TER qui sopra, solo molto più grande — ed è per questo che ha una sezione tutta sua.</dd>
+    <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su quello che c'è nel conto, non sul guadagno. L'1% su <span class="cur">€</span>100 000 fa <span class="cur">€</span>1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Spesso non è calcolato su tutto — consulenza sull'ETF azionario, niente su un'obbligazione che tieni semplicemente fino alla scadenza — ed è per questo che questa pagina chiede un'aliquota per ciascuna parte. Si comporta esattamente come il TER qui sopra, solo molto più grande, ed è per questo che ha una sezione tutta sua.</dd>
 
     <dt>Correlazione</dt>
     <dd>Se due cose si muovono insieme. +1 significa sempre all'unisono, 0 significa senza relazione, −1 significa opposti perfetti. Le azioni e un <em>fondo</em> obbligazionario in questi dati sono stati circa <b id="dsCorr">0.2</b>: legati, ma poco. L'obbligazione che questo piano tiene resta fino alla scadenza e non ha alcun prezzo di mercato, quindi la sua correlazione con le azioni è esattamente zero: non serve a salire quando le azioni scendono, serve come la parte del capitale che semplicemente non può scendere.</dd>
@@ -895,7 +921,7 @@ export const STRINGS = {
      real amount, so the selected one is spelled out underneath in a sentence. */
   "js.view.note.nominal": {
     en: "The number you would see on a statement in {years} years. Inflation is left in, so it looks bigger — {infl} a year is assumed.",
-    it: "La cifra che vedresti su un estratto conto fra {years} anni. L'inflazione è lasciata dentro, quindi sembra più grande — si ipotizza il {infl} all'anno.",
+    it: "La cifra che vedresti su un estratto conto fra {years} anni. L'inflazione è lasciata dentro, quindi sembra più grande — si ipotizza {infl} all'anno.",
   },
   "js.view.note.real": {
     en: "Inflation taken out: what the money would buy at today's prices.",
@@ -995,7 +1021,7 @@ export const STRINGS = {
   },
   "js.allocNote": {
     en: "{risky} of the money you put in goes to the risky part, {safe} to the safer part.",
-    it: "Il {risky} dei soldi che versi va nella parte rischiosa, il {safe} in quella più sicura.",
+    it: "Dei soldi che versi, {risky} va nella parte rischiosa e {safe} in quella più sicura.",
   },
 
   // ------------------------------------------------------------------ legend
@@ -1218,13 +1244,45 @@ export const STRINGS = {
   },
   "js.tax.callout": {
     en: "<strong>The tax costs you more than the tax.</strong> On the middle journey you hand over {total}, which is {share} of the {gross} profit you made. But your final total drops by <em>more</em> than {total}: every euro taken early is also a euro that can never grow again. Set the country to “nowhere” and compare the headline to see the full cost.",
-    it: "<strong>Le imposte ti costano più delle imposte.</strong> Sul percorso centrale consegni {total}, cioè il {share} del guadagno di {gross} che hai realizzato. Ma il tuo totale finale scende di <em>più</em> di {total}: ogni euro preso presto è anche un euro che non potrà mai più crescere. Metti il paese su “nessun paese” e confronta la cifra principale per vedere il costo pieno.",
+    it: "<strong>Le imposte ti costano più delle imposte.</strong> Sul percorso centrale consegni {total}, cioè {share} del guadagno di {gross} che hai realizzato. Ma il tuo totale finale scende di <em>più</em> di {total}: ogni euro preso presto è anche un euro che non potrà mai più crescere. Metti il paese su “nessun paese” e confronta la cifra principale per vedere il costo pieno.",
   },
 
   // ----------------------------------------------------- the consultant's fee
+  // How the two rates are said in one breath. Kept as its own phrase because it
+  // is dropped into five different sentences, and because "1% on the shares and
+  // nothing on the bond" is the common case and deserves to read like English
+  // rather than like two numbers in a row.
+  "js.adv.rates.same": {
+    en: "{rate} of everything you hold",
+    it: "{rate} su tutto quello che hai",
+  },
+  "js.adv.rates.split": {
+    en: "{rateEq} of the share ETF and {rateBd} of the bond",
+    it: "{rateEq} sull'ETF azionario e {rateBd} sull'obbligazione",
+  },
+  "js.adv.rates.split.gbp": {
+    en: "{rateEq} of the share ETF and {rateBd} of the gilt",
+    it: "{rateEq} sull'ETF azionario e {rateBd} sul gilt",
+  },
+  "js.adv.rates.bondFree": {
+    en: "{rateEq} of the share ETF and nothing of the bond",
+    it: "{rateEq} sull'ETF azionario e niente sull'obbligazione",
+  },
+  "js.adv.rates.bondFree.gbp": {
+    en: "{rateEq} of the share ETF and nothing of the gilt",
+    it: "{rateEq} sull'ETF azionario e niente sul gilt",
+  },
+  "js.adv.rates.eqFree": {
+    en: "nothing of the share ETF and {rateBd} of the bond",
+    it: "niente sull'ETF azionario e {rateBd} sull'obbligazione",
+  },
+  "js.adv.rates.eqFree.gbp": {
+    en: "nothing of the share ETF and {rateBd} of the gilt",
+    it: "niente sull'ETF azionario e {rateBd} sul gilt",
+  },
   "js.adv.planSummary": {
-    en: "A consultant takes {rate} of everything you hold each year — {amount} on today's pot, and more as it grows",
-    it: "Un consulente prende ogni anno il {rate} di tutto quello che hai — {amount} sul capitale di oggi, e di più mentre cresce",
+    en: "A consultant takes {rates} each year — {amount} on today's pot, and more as it grows",
+    it: "Un consulente prende ogni anno {rates} — {amount} sul capitale di oggi, e di più mentre cresce",
   },
   // The share of the gain leads this note: a percentage of the balance sounds
   // small, and the same money as a slice of the profit is what it really costs.
@@ -1234,17 +1292,17 @@ export const STRINGS = {
   },
   // A plan with no profit to share out has nothing to take a share of.
   "js.adv.leadNote.noProfit": {
-    en: "{rate} a year of the balance, over {years} years",
-    it: "{rate} all'anno sul capitale, per {years} anni",
+    en: "{rates}, every year for {years} years",
+    it: "{rates}, ogni anno per {years} anni",
   },
   "js.adv.hint": {
-    en: "{rate} a year — {amount} on average",
-    it: "{rate} all'anno — {amount} in media",
+    en: "{rates} a year — {amount} on average",
+    it: "{rates} all'anno — {amount} in media",
   },
   "js.adv.hint.none": { en: "nobody is paid", it: "non paghi nessuno" },
   "js.adv.intro": {
-    en: "Paying <b>{rate}</b> a year of everything you hold, for {years} years, hands over <b>{amount}</b> on average. All amounts in {unit}, and every other figure on this page is already after this fee.",
-    it: "Pagare il <b>{rate}</b> all'anno su tutto quello che hai, per {years} anni, significa consegnare in media <b>{amount}</b>. Tutti gli importi in {unit}, e ogni altra cifra della pagina è già al netto di questo compenso.",
+    en: "Paying <b>{rates}</b>, every year for {years} years, hands over <b>{amount}</b> on average. All amounts in {unit}, and every other figure on this page is already after this fee.",
+    it: "Pagare <b>{rates}</b>, ogni anno per {years} anni, significa consegnare in media <b>{amount}</b>. Tutti gli importi in {unit}, e ogni altra cifra della pagina è già al netto di questo compenso.",
   },
   "js.adv.intro.none": {
     en: "You have not ticked the consultant box, so nothing is being taken. Tick <em>“I pay a financial consultant”</em> next to your plan and every number on this page — the headline, the bands, the lowest point — becomes the figure after their fee.",
@@ -1265,19 +1323,46 @@ export const STRINGS = {
   },
   "js.adv.dragNote": {
     en: "That last figure is arithmetic, not a simulation: {rate} taken every year for {years} years leaves {left} of whatever it was charged on, so it costs {drag} of it. It is the honest way to state the price, because it counts the growth the money taken would itself have earned.",
-    it: "Quest'ultima cifra è aritmetica, non una simulazione: il {rate} prelevato ogni anno per {years} anni lascia il {left} di ciò su cui è stato calcolato, quindi ne costa il {drag}. È il modo onesto di dire il prezzo, perché conta anche la crescita che i soldi prelevati avrebbero prodotto.",
+    it: "Quest'ultima cifra è aritmetica, non una simulazione: {rate} prelevato ogni anno per {years} anni lascia {left} di ciò su cui è stato calcolato, quindi ne costa {drag}. È il modo onesto di dire il prezzo, perché conta anche la crescita che i soldi prelevati avrebbero prodotto.",
+  },
+  // Two rates mean two separate drags, so the headline one is a blend and has to
+  // say so — otherwise it looks like a rate nobody is actually paying.
+  "js.adv.dragNote.split": {
+    en: "That last figure is arithmetic, not a simulation: {rateEq} taken every year for {years} years costs {dragEq} of the share part, {bond}. The {drag} above blends the two by how much of your money starts in each part. It is the honest way to state the price, because it counts the growth the money taken would itself have earned.",
+    it: "Quest'ultima cifra è aritmetica, non una simulazione: {rateEq} prelevato ogni anno per {years} anni costa {dragEq} della parte azionaria, {bond}. La media delle due, pesata su quanto del tuo denaro parte in ciascuna parte, è {drag} — la cifra qui sopra. È il modo onesto di dire il prezzo, perché conta anche la crescita che i soldi prelevati avrebbero prodotto.",
+  },
+  // The mirror image — a fee on the bond and none on the shares. Rare, but the
+  // boxes allow it, and the sentence above would open with "0.00% costs 0.0% of
+  // the share part", which is true and tells the reader nothing.
+  "js.adv.dragNote.bondOnly": {
+    en: "That last figure is arithmetic, not a simulation: {rateBd} taken every year for {years} years costs {dragBd} of the bond part, while the share part is charged nothing at all. The {drag} above blends the two by how much of your money starts in each part. It is the honest way to state the price, because it counts the growth the money taken would itself have earned.",
+    it: "Quest'ultima cifra è aritmetica, non una simulazione: {rateBd} prelevato ogni anno per {years} anni costa {dragBd} della parte obbligazionaria, mentre sulla parte azionaria non viene prelevato niente. La media delle due, pesata su quanto del tuo denaro parte in ciascuna parte, è {drag} — la cifra qui sopra. È il modo onesto di dire il prezzo, perché conta anche la crescita che i soldi prelevati avrebbero prodotto.",
+  },
+  "js.adv.drag.bondPaid": {
+    en: "and {rateBd} costs {dragBd} of the bond part",
+    it: "e {rateBd} costa {dragBd} della parte obbligazionaria",
+  },
+  "js.adv.drag.bondFree": {
+    en: "while the bond part is charged nothing at all",
+    it: "mentre sulla parte obbligazionaria non viene prelevato niente",
   },
   "js.adv.rule.basis": {
-    en: "The fee is <b>{rate}</b> of the whole balance, not of the gain and not of what you paid in. On the {pot} you hold today that is {amount}; on a pot twice the size it is twice as much.",
-    it: "Il compenso è il <b>{rate}</b> di tutto il capitale, non del guadagno né di quanto hai versato. Sui {pot} che hai oggi fa {amount}; su un capitale doppio fa il doppio.",
+    en: "The fee is <b>{rates}</b> — a percentage of the balance, not of the gain and not of what you paid in. On the {pot} you hold today that is {amount}; on a pot twice the size it is twice as much.",
+    it: "Il compenso è <b>{rates}</b> — una percentuale del capitale, non del guadagno né di quanto hai versato. Sui {pot} che hai oggi fa {amount}; su un capitale doppio fa il doppio.",
   },
   "js.adv.rule.once": {
     en: "It is taken <b>once a year</b>, at the end of each year, on whatever the pot is worth at that moment — so a good year raises the bill and a bad year lowers it, but never to zero.",
     it: "Viene prelevato <b>una volta all'anno</b>, a fine anno, su quanto vale il capitale in quel momento — quindi un anno buono alza il conto e un anno cattivo lo abbassa, ma mai a zero.",
   },
   "js.adv.rule.prorata": {
-    en: "It comes out of both funds in proportion, so paying it does not quietly change your share/bond split.",
-    it: "Esce da entrambi i fondi in proporzione, quindi pagarlo non cambia di nascosto la tua ripartizione tra azioni e obbligazioni.",
+    en: "Both parts pay the same rate, so it comes out of them in proportion and paying it does not quietly change your share/bond split.",
+    it: "Le due parti pagano la stessa aliquota, quindi esce da entrambe in proporzione e pagarlo non cambia di nascosto la tua ripartizione tra azioni e obbligazioni.",
+  },
+  // When the rates differ the fee is no longer neutral on the split, and saying
+  // otherwise would be false — so this replaces the sentence above.
+  "js.adv.rule.perSleeve": {
+    en: "Each part is charged its own rate, taken out of that part — so the more expensive one shrinks a little faster every year and the fee slowly tilts your share/bond split towards the cheaper one.",
+    it: "Ogni parte paga la propria aliquota, prelevata da quella stessa parte — quindi quella più costosa si riduce un po' più in fretta ogni anno e il compenso inclina lentamente la ripartizione verso quella più economica.",
   },
   "js.adv.rule.compounding": {
     en: "Each payment is gone for the rest of the period, so it is subtracted <em>inside</em> the {years}-year simulation rather than added up at the end — money handed over early spends every remaining year out of the market.",
@@ -1301,7 +1386,7 @@ export const STRINGS = {
   },
   "js.adv.callout": {
     en: "<strong>Compare it with what you get.</strong> Over {years} years this arrangement takes {amount} in {unit}, about {share} of the profit. Untick the box and watch the headline: the gap it opens is the whole price, including the growth those payments would have produced. Whether the advice is worth that gap is the only question that matters — and it is not one a model can answer.",
-    it: "<strong>Confrontalo con quello che ricevi.</strong> In {years} anni questa soluzione si prende {amount} in {unit}, circa il {share} del guadagno. Togli la spunta e guarda la cifra principale: il divario che si apre è il prezzo pieno, inclusa la crescita che quei pagamenti avrebbero prodotto. Se la consulenza valga quel divario è l'unica domanda che conta — e non è una domanda a cui un modello possa rispondere.",
+    it: "<strong>Confrontalo con quello che ricevi.</strong> In {years} anni questa soluzione si prende {amount} in {unit}, circa {share} del guadagno. Togli la spunta e guarda la cifra principale: il divario che si apre è il prezzo pieno, inclusa la crescita che quei pagamenti avrebbero prodotto. Se la consulenza valga quel divario è l'unica domanda che conta — e non è una domanda a cui un modello possa rispondere.",
   },
   "js.adv.callout.none": {
     en: "<strong>Worth checking anyway.</strong> Many people pay a percentage of their pot without ever seeing it as a number, because it is deducted rather than invoiced. If you hold funds through a bank or an adviser, look up the rate and try it here: 1% a year sounds small and rarely is.",

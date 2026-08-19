@@ -31,7 +31,7 @@ import {
   describeTaxPlan,
 } from "../js/tax.js";
 import { STRINGS } from "../js/strings.js";
-import { setLang, num } from "../js/i18n.js";
+import { setLang, num, pctPhrase, ratePhrase } from "../js/i18n.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const data = JSON.parse(readFileSync(join(HERE, "../data/returns.json"), "utf8"));
@@ -888,7 +888,8 @@ console.log("\n12. CONSULTANT'S FEE — a yearly slice of the whole balance");
   check(
     "the fee quoted on today's pot is the rate times today's pot",
     paid.advisor.feeOnToday === base.initialRisky * fee &&
-      paid.advisor.fee === fee,
+      paid.advisor.feeRisky === fee && paid.advisor.feeSafe === fee &&
+      paid.advisor.sameRate === true,
     `${eur(paid.advisor.feeOnToday)}`
   );
   // Measured the same way as the tax ratio: the bill over the profit that was
@@ -930,6 +931,66 @@ console.log("\n12. CONSULTANT'S FEE — a yearly slice of the whole balance");
     "both sleeves are charged at the same rate, so the split is untouched",
     rel(mPaid.final.p50 / mFree.final.p50, expectedRatio) < 1e-9,
     `ratio ${(mPaid.final.p50 / mFree.final.p50).toFixed(8)}`
+  );
+  check(
+    "one rate on both sleeves is the same thing as the single-number shorthand",
+    simulate(mixedSynth, { ...mixed, advisorFeeRisky: fee, advisorFeeSafe: fee })
+      .final.p50 === mPaid.final.p50,
+    `${eur(mPaid.final.p50)}`
+  );
+
+  // ---- a rate per sleeve: the default arrangement is 1% on the shares and
+  // nothing on the bond, so the bond sleeve must come out untouched.
+  const eqOnly = simulate(mixedSynth, {
+    ...mixed, advisorFeeRisky: fee, advisorFeeSafe: 0,
+  });
+  // What each sleeve is worth on its own: the share side pays the fee every year,
+  // the bond side is left completely alone.
+  const bondAlone = mixed.initialSafe * Math.pow(1.02, mixed.years);
+  check(
+    "a fee on the share part only leaves the bond part exactly as it was",
+    rel(eqOnly.final.p50, pot + bondAlone) < 1e-9,
+    `${eur(eqOnly.final.p50)} vs ${eur(pot + bondAlone)}`
+  );
+  check(
+    "and it hands over exactly what the share sleeve alone would have paid",
+    rel(eqOnly.advisor.mean, handTotal) < 1e-9 && eqOnly.advisor.sameRate === false,
+    `${eur(eqOnly.advisor.mean)} vs ${eur(handTotal)}`
+  );
+  check(
+    "the two drags are reported separately: the share one is real, the bond one zero",
+    rel(eqOnly.advisor.dragRisky, 1 - expectedRatio) < 1e-12 &&
+      eqOnly.advisor.dragSafe === 0,
+    `${(eqOnly.advisor.dragRisky * 100).toFixed(3)}% and 0%`
+  );
+  check(
+    "the headline drag blends them by what starts in each sleeve (half and half here)",
+    rel(eqOnly.advisor.dragOnInitial, (1 - expectedRatio) / 2) < 1e-12,
+    `${(eqOnly.advisor.dragOnInitial * 100).toFixed(3)}%`
+  );
+  check(
+    "today's bill counts each sleeve at its own rate",
+    eqOnly.advisor.feeOnToday === mixed.initialRisky * fee,
+    `${eur(eqOnly.advisor.feeOnToday)}`
+  );
+  // The mirror image, to prove neither sleeve is hard-wired.
+  const bdOnly = simulate(mixedSynth, {
+    ...mixed, advisorFeeRisky: 0, advisorFeeSafe: fee,
+  });
+  check(
+    "a fee on the bond part only leaves the share part exactly as it was",
+    rel(
+      bdOnly.final.p50,
+      mixed.initialRisky * Math.pow(1 + R, mixed.years) +
+        mixed.initialSafe * Math.pow(1.02 * (1 - fee), mixed.years)
+    ) < 1e-9 && bdOnly.advisor.dragRisky === 0,
+    `${eur(bdOnly.final.p50)}`
+  );
+  check(
+    "different rates tilt the split, so the pot is not simply (1−fee)^years of the free one",
+    rel(eqOnly.final.p50 / mFree.final.p50, expectedRatio) > 1e-3 &&
+      eqOnly.final.p50 > mPaid.final.p50 && eqOnly.final.p50 < mFree.final.p50,
+    `ratio ${(eqOnly.final.p50 / mFree.final.p50).toFixed(6)} vs ${expectedRatio.toFixed(6)}`
   );
 
   // Real data, real tax: the two engines must agree, the ordering must hold, and
@@ -1005,6 +1066,17 @@ console.log("\n12. CONSULTANT'S FEE — a yearly slice of the whole balance");
       rel(wPaid.final, paid.final.p50) < 1e-9 &&
       rel(wFree.final, free.final.p50) < 1e-9,
     `replay ${eur(wPaid.advisorPaid)} vs simulation ${eur(paid.advisor.mean)}`
+  );
+  // The replay must charge per sleeve too, or the overlay line would be a plan
+  // where the bond is charged and the bands' plan one where it is not.
+  const wEqOnly = historicalWindows(mixedSynth, {
+    ...mixed, advisorFeeRisky: fee, advisorFeeSafe: 0,
+  })[0];
+  check(
+    "the historical replay charges each sleeve its own rate as well",
+    rel(wEqOnly.advisorPaid, handTotal) < 1e-9 &&
+      rel(wEqOnly.final, eqOnly.final.p50) < 1e-9,
+    `replay ${eur(wEqOnly.advisorPaid)} vs simulation ${eur(eqOnly.advisor.mean)}`
   );
 }
 
@@ -1289,6 +1361,33 @@ console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian"
     );
   }
 
+  // ---- the article in front of an Italian percentage -----------------------
+  // Italian says l'1%, lo 0,5%, l'11%, il 2% — the article follows how the
+  // number is *spoken*, so it cannot be written into the dictionary next to a
+  // placeholder whose value comes from the simulation. It travels with the
+  // value instead, through pctPhrase/ratePhrase. These are the placeholders that
+  // are always filled with a percentage, so a literal article in front of one is
+  // a bug waiting for the wrong number.
+  {
+    const pctSlots = new Set([
+      "rate", "rateEq", "rateBd", "drag", "dragEq", "dragBd", "left",
+      "share", "infl", "risky", "safe",
+    ]);
+    const offenders = [];
+    for (const [key, entry] of Object.entries(STRINGS)) {
+      const italian = entry && entry.it;
+      if (typeof italian !== "string") continue;
+      for (const m of italian.matchAll(/\b([Ii]l|[Ll]o|[Ll]a|dell'|del|nel)\s*\{(\w+)\}/g)) {
+        if (pctSlots.has(m[2])) offenders.push(`${key}: "${m[0]}"`);
+      }
+    }
+    check(
+      "no Italian string writes its own article in front of a percentage",
+      offenders.length === 0,
+      offenders.length ? offenders.join(", ") : "every one comes from pctPhrase/ratePhrase"
+    );
+  }
+
   // ---- formatting, and the words that come out of tax.js. Both need the module
   // to actually be in Italian, and setLang repaints the page, so stand up the
   // smallest possible document for it.
@@ -1309,6 +1408,28 @@ console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian"
       "Italian writes the decimal comma, and both languages group with a thin space",
       /^1[  ]234,5$/.test(itNum) && /^1[  ]234\.5$/.test(enNum),
       `${itNum} / ${enNum}`
+    );
+
+    setLang("it", { remember: false });
+    const spoken = [
+      pctPhrase(0.118, 1), // undici
+      pctPhrase(0.005, 1), // zero
+      pctPhrase(0.02, 1), // due
+      pctPhrase(0.8, 0), // ottanta
+      pctPhrase(0.12, 0), // dodici
+      ratePhrase(0.0125, 2), // uno
+      ratePhrase(0, 2), // zero
+    ].join(" ");
+    check(
+      "an Italian percentage carries the article its spoken number takes",
+      spoken === "l'11,8% lo 0,5% il 2,0% l'80% il 12% l'1,25% lo 0,00%",
+      spoken
+    );
+    setLang("en", { remember: false });
+    check(
+      "English takes no article, so the same helpers are plain percentages",
+      pctPhrase(0.118, 1) === "11.8%" && ratePhrase(0.0125, 2) === "1.25%",
+      `${pctPhrase(0.118, 1)} / ${ratePhrase(0.0125, 2)}`
     );
 
     const sels = [
