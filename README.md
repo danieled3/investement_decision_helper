@@ -170,7 +170,7 @@ A minute later the app is live at the link at the top of this file.
 ## Tests
 
 ```sh
-npm test           # node tests/verify.mjs  →  132 checks
+npm test           # node tests/verify.mjs  →  138 checks
 ```
 
 `tests/verify.mjs` is a correctness proof, not a smoke test. Among other things it

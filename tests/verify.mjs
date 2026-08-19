@@ -1182,6 +1182,113 @@ console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian"
     lostIds.length ? lostIds.slice(0, 5).join(", ") : "all ids match"
   );
 
+  // ---- the currency-aware blocks. refreshCountryLabels() writes t(key) for
+  // whichever of data-i18n-eur / data-i18n-gbp applies, so a typo in either
+  // attribute would paint the literal key onto the page — and only for the
+  // country nobody happened to click while testing. Check both halves resolve,
+  // that they come in pairs, and that the sterling half is not a copy of the
+  // euro one (which is how this whole class of bug hides).
+  {
+    const attr = (name) => {
+      const out = new Map(); // key -> count of elements using it
+      const re = new RegExp(`\\b${name}="([^"]+)"`, "g");
+      for (let m; (m = re.exec(html)); ) out.set(m[1], (out.get(m[1]) || 0) + 1);
+      return out;
+    };
+    const eur = attr("data-i18n-eur");
+    const gbp = attr("data-i18n-gbp");
+    // A key resolves if the dictionary knows it or the page itself carries the
+    // English under data-i18n — exactly the two places t() looks.
+    const resolves = (k) => Boolean(STRINGS[k]) || englishBlocks.has(k);
+    const unresolved = [...eur.keys(), ...gbp.keys()].filter((k) => !resolves(k));
+    check(
+      "every currency-variant i18n key resolves to a string",
+      unresolved.length === 0,
+      unresolved.length ? unresolved.join(", ") : `${eur.size} euro + ${gbp.size} sterling keys`
+    );
+    check(
+      "no element carries one currency variant without the other",
+      eur.size === gbp.size && [...eur.values()].reduce((a, b) => a + b, 0) ===
+        [...gbp.values()].reduce((a, b) => a + b, 0),
+      `${eur.size} eur vs ${gbp.size} gbp`
+    );
+    const text = (k) => (STRINGS[k] && STRINGS[k].en) || englishBlocks.get(k) || "";
+    const pairs = [...eur.keys()].map((k, i) => [k, [...gbp.keys()][i]]);
+    const notSwapped = pairs.filter(([e, g]) => text(e).trim() === text(g).trim());
+    check(
+      "each sterling variant says something different from its euro twin",
+      notSwapped.length === 0,
+      notSwapped.length ? notSwapped.map(([e]) => e).join(", ") : `${pairs.length} pairs differ`
+    );
+    // The point of the pairs: no sterling text may talk about euros, in either
+    // language, and each must name pounds somewhere.
+    const wrongCurrency = [];
+    for (const k of gbp.keys()) {
+      const entry = STRINGS[k];
+      for (const lang of ["en", "it"]) {
+        const s = entry && entry[lang];
+        if (typeof s !== "string") continue;
+        if (/€|\beuro/i.test(s)) wrongCurrency.push(`${k}.${lang}: mentions euros`);
+        if (!/£|pound|sterlin|gilt|British|britannic|UK|Regno Unito|Bank of England/i.test(s))
+          wrongCurrency.push(`${k}.${lang}: never names sterling`);
+      }
+    }
+    check(
+      "no sterling variant is still written in euros",
+      wrongCurrency.length === 0,
+      wrongCurrency.length ? wrongCurrency.slice(0, 5).join("; ") : `${gbp.size} sterling blocks`
+    );
+  }
+
+  // ---- the worked examples that only swap their symbol. app.js repaints every
+  // .cur span, so the English in the page and the Italian in the dictionary must
+  // agree on how many there are, or one language would keep a hard-coded €.
+  {
+    const curs = (s) => (s.match(/<span class="cur">/g) || []).length;
+    const mismatched = [];
+    for (const [key, english] of englishBlocks) {
+      const italian = STRINGS[key] && STRINGS[key].it;
+      if (typeof italian !== "string") continue;
+      if (curs(english) !== curs(italian))
+        mismatched.push(`${key}: ${curs(english)} en vs ${curs(italian)} it`);
+    }
+    const total = [...englishBlocks.values()].reduce((a, s) => a + curs(s), 0);
+    check(
+      "both languages mark the same worked examples as currency-dependent",
+      mismatched.length === 0 && total > 0,
+      mismatched.length ? mismatched.join(", ") : `${total} swappable symbols`
+    );
+    // Anything left as a bare € in prose is a euro sign no country switch can
+    // reach. Three things legitimately hold one, and each is removed by its own
+    // rule rather than by exempting the key wholesale — so a new stray euro in
+    // the same block still fails.
+    const reachable = (s) =>
+      s
+        // 1. placeholders app.js overwrites with a formatted amount
+        .replace(/<b id="[^"]+">[^<]*<\/b>/g, "")
+        // 2. symbols refreshCurrencySymbols() repaints
+        .replace(/<span class="cur">€<\/span>/g, "")
+        // 3. the imposta di bollo / IVAFE entry: an inherently Italian charge,
+        //    quoted in the currency it is actually levied in
+        .replace(/<dd>(?:(?!<\/dd>)[\s\S])*?(?:imposta di bollo|IVAFE)[\s\S]*?<\/dd>/g, "");
+    const paired = new Set(
+      [...html.matchAll(/\bdata-i18n-eur="([^"]+)"/g)].map((m) => m[1])
+    );
+    const strays = [];
+    for (const [key, english] of englishBlocks) {
+      // The euro half of a currency pair is reached through its sterling twin.
+      if (paired.has(key)) continue;
+      if (reachable(english).includes("€")) strays.push(key);
+      const italian = STRINGS[key] && STRINGS[key].it;
+      if (typeof italian === "string" && reachable(italian).includes("€")) strays.push(`${key} (it)`);
+    }
+    check(
+      "no prose block keeps a euro sign the currency switch cannot reach",
+      strays.length === 0,
+      strays.length ? strays.join(", ") : "every euro sign is filled, swapped or Italian by nature"
+    );
+  }
+
   // ---- formatting, and the words that come out of tax.js. Both need the module
   // to actually be in Italian, and setLang repaints the page, so stand up the
   // smallest possible document for it.

@@ -423,9 +423,10 @@ function onLanguageChanged() {
   syncLangButtons();
   syncThemeLabel();
   $("toggleTable").textContent = t(showTable ? "js.table.hide" : "js.table.show");
-  // applyStatic has just repainted the euro wording of the country-named labels,
-  // so put the current country's back.
+  // applyStatic has just repainted the euro wording of the country-named labels
+  // and the euro symbol of every worked example, so put the current country's back.
   refreshCountryLabels($("taxCountry").value === "gb");
+  refreshCurrencySymbols();
   if (DATA) fillDatasetFacts();
   const opts = readForm();
   updatePlanSummary(opts);
@@ -516,14 +517,25 @@ function applyCurrency(country) {
   const gbp = country === "gb";
   setCurrency(gbp ? "£" : "€");
   document.documentElement.setAttribute("data-currency", gbp ? "gbp" : "eur");
-  // The little symbol in front of every money input.
-  for (const span of document.querySelectorAll(".euro-input > span")) {
-    span.textContent = currency();
-  }
+  // Order matters: refreshCountryLabels rewrites whole blocks with innerHTML, so
+  // the symbols have to be repainted after it, not before.
   refreshCountryLabels(gbp);
+  refreshCurrencySymbols();
   // Swapping the bond note back to euros restores its "−25.1%" placeholder, so
   // the dataset facts have to be written into it again.
   if (DATA) fillDatasetFacts();
+}
+
+/**
+ * Every place the page writes the currency symbol itself: the little prefix in
+ * front of each money input, and the worked examples in the explanations and the
+ * glossary, where "0.20% means €20 a year on €10 000" has to read in pounds for a
+ * UK plan. The amounts are round illustrations, so only the symbol moves.
+ */
+function refreshCurrencySymbols() {
+  for (const span of document.querySelectorAll(".euro-input > span, .cur")) {
+    span.textContent = currency();
+  }
 }
 
 /**

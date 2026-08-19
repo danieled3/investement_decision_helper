@@ -588,13 +588,17 @@
     is.
   </div>
 
-  <h3 data-i18n="how.units.title">“Future euros” versus “today's buying power”</h3>
-  <p data-i18n="how.units.p1">
+  <h3 data-i18n="how.units.title"
+      data-i18n-eur="how.units.title" data-i18n-gbp="how.units.title.gbp"
+      >“Future euros” versus “today's buying power”</h3>
+  <p data-i18n="how.units.p1"
+     data-i18n-eur="how.units.p1" data-i18n-gbp="how.units.p1.gbp">
     €100 in ten years will not buy what €100 buys now. So the same outcome can be
     written as two different amounts, and the toggle next to your plan switches
     between them:
   </p>
-  <ul data-i18n="how.units.list">
+  <ul data-i18n="how.units.list"
+      data-i18n-eur="how.units.list" data-i18n-gbp="how.units.list.gbp">
     <li>
       <strong>Future euros</strong> (the default) is the amount you would literally
       see printed on a statement in ten years — the number of euros you will be
@@ -608,7 +612,8 @@
       gives us directly: everything is simulated in it and then converted.
     </li>
   </ul>
-  <p data-i18n="how.units.p2">
+  <p data-i18n="how.units.p2"
+     data-i18n-eur="how.units.p2" data-i18n-gbp="how.units.p2.gbp">
     For the “future euros” view we do <em>not</em> guess inflation from history —
     the 1923 German hyperinflation would make that meaningless. Instead you set a
     single assumed inflation rate (2% by default, the European Central Bank's
@@ -817,10 +822,10 @@
     <dd>How far your balance has fallen from its own highest point so far. A 40% drawdown means that at some moment you were looking at 40% less than the most you had ever had.</dd>
 
     <dt>TER (total expense ratio)</dt>
-    <dd>The fund's yearly fee, taken automatically out of the fund's value. 0.20% means €20 a year on €10 000. Small numbers, but they compound: 0.5% a year costs about 5% of your money over ten years.</dd>
+    <dd>The fund's yearly fee, taken automatically out of the fund's value. 0.20% means <span class="cur">€</span>20 a year on <span class="cur">€</span>10 000. Small numbers, but they compound: 0.5% a year costs about 5% of your money over ten years.</dd>
 
     <dt>Consultant's fee (a percentage of what you hold)</dt>
-    <dd>The commonest way advice and portfolio management are charged: a yearly percentage of everything in the account, not of the profit. 1% on €100 000 is €1 000 a year, owed whether the year was good or bad, and it grows as the pot grows. It behaves exactly like the TER above, only much larger — which is why it has its own section.</dd>
+    <dd>The commonest way advice and portfolio management are charged: a yearly percentage of everything in the account, not of the profit. 1% on <span class="cur">€</span>100 000 is <span class="cur">€</span>1 000 a year, owed whether the year was good or bad, and it grows as the pot grows. It behaves exactly like the TER above, only much larger — which is why it has its own section.</dd>
 
     <dt>Correlation</dt>
     <dd>Whether two things move together. +1 means always in lockstep, 0 means unrelated, −1 means perfect opposites. Shares and bonds have been roughly <b id="dsCorr">0.2</b> here — related, but loosely, which is exactly what makes holding both useful.</dd>
@@ -975,7 +980,7 @@
     <li><code>data/returns.json</code> — the <b id="dsN3">126</b> years of returns, in plain text</li>
     <li><code>js/engine.js</code> — the simulation itself</li>
     <li><code>js/tax.js</code> — the whole country-specific tax model, rates included</li>
-    <li><code>tests/verify.mjs</code> — <b id="dsChecks">132</b> checks, including proofs against closed-form algebra where one exists</li>
+    <li><code>tests/verify.mjs</code> — <b id="dsChecks">138</b> checks, including proofs against closed-form algebra where one exists</li>
     <li><code>tests/calibrate_blocks.mjs</code> — the study that chose the five-year stretch length</li>
   </ul>
   <p class="sub" data-i18n="data.check.seed">

@@ -395,6 +395,64 @@ export const STRINGS = {
       versati” è più alta.`,
   },
 
+  // The sterling half of the same four blocks. Here it is not only the symbol
+  // that changes: the unit is named in the prose (“future pounds”) and the
+  // inflation target belongs to a different central bank, so these are whole
+  // alternative texts rather than a span the currency code can repaint.
+  "how.units.title.gbp": {
+    en: "“Future pounds” versus “today's buying power”",
+    it: "“Sterline future” contro “potere d'acquisto di oggi”",
+  },
+  "how.units.p1.gbp": {
+    en: `£100 in ten years will not buy what £100 buys now. So the same outcome can be
+      written as two different amounts, and the toggle next to your plan switches
+      between them:`,
+    it: `100 £ fra dieci anni non compreranno quello che comprano 100 £ adesso. Perciò
+      lo stesso risultato si può scrivere come due cifre diverse, e l'interruttore
+      accanto al tuo piano passa da una all'altra:`,
+  },
+  "how.units.list.gbp": {
+    en: `<li>
+        <strong>Future pounds</strong> (the default) is the amount you would literally
+        see printed on a statement in ten years — the number of pounds you will be
+        holding. It is the bigger of the two, because prices will have risen along
+        with it.
+      </li>
+      <li>
+        <strong>Today's buying power</strong> takes that rise back out again. If it
+        says £102 000, it means <em>as much shopping as £102 000 buys you today</em>. It is
+        the smaller and more sobering figure, and it is the one the historical data
+        gives us directly: everything is simulated in it and then converted.
+      </li>`,
+    it: `<li>
+        <strong>Sterline future</strong> (il valore predefinito) è la cifra che vedresti
+        letteralmente stampata su un estratto conto fra dieci anni — le sterline che
+        avrai in mano. È la più grande delle due, perché nel frattempo saranno
+        saliti anche i prezzi.
+      </li>
+      <li>
+        <strong>Potere d'acquisto di oggi</strong> quella salita la toglie di nuovo. Se dice
+        102 000 £, significa <em>tanta spesa quanta ne fai oggi con 102 000 £</em>. È la
+        cifra più piccola e più severa, ed è quella che i dati storici ci danno
+        direttamente: tutto è simulato così e poi convertito.
+      </li>`,
+  },
+  "how.units.p2.gbp": {
+    en: `For the “future pounds” view we do <em>not</em> guess inflation from history —
+      the 1923 German hyperinflation would make that meaningless. Instead you set a
+      single assumed inflation rate (2% by default, the Bank of England's target),
+      in the box beside the toggle. In that view we also assume you raise your
+      monthly payment with inflation, so it keeps the same real value; that is why
+      the “money you paid in” line is higher there.`,
+    it: `Per la vista “sterline future” <em>non</em> ricaviamo l'inflazione dalla storia:
+      l'iperinflazione tedesca del 1923 renderebbe la cosa priva di senso. Imposti
+      invece un'unica inflazione ipotizzata (2% per default, l'obiettivo della Bank
+      of England), nella casella accanto all'interruttore. In quella vista
+      assumiamo anche che tu alzi il versamento mensile con l'inflazione, così
+      mantiene lo stesso valore reale: è per questo che lì la linea dei “soldi
+      versati” è più alta.`,
+  },
+
   "how.bands.title": { it: "Cosa significano le fasce" },
   "how.bands.p1": {
     it: `Non simuliamo un futuro, ne simuliamo <b>centomila</b>. Poi mettiamo in fila
@@ -606,10 +664,10 @@ export const STRINGS = {
     <dd>Quanto il tuo capitale è sceso rispetto al suo massimo raggiunto fino a quel momento. Un drawdown del 40% significa che in un certo momento stavi guardando il 40% in meno del massimo che avevi mai avuto.</dd>
 
     <dt>TER (costo totale del fondo)</dt>
-    <dd>Il costo annuo del fondo, prelevato automaticamente dal valore del fondo stesso. 0,20% significa €20 all'anno su €10 000. Numeri piccoli, ma si accumulano: 0,5% all'anno costa circa il 5% del tuo denaro in dieci anni.</dd>
+    <dd>Il costo annuo del fondo, prelevato automaticamente dal valore del fondo stesso. 0,20% significa <span class="cur">€</span>20 all'anno su <span class="cur">€</span>10 000. Numeri piccoli, ma si accumulano: 0,5% all'anno costa circa il 5% del tuo denaro in dieci anni.</dd>
 
     <dt>Compenso del consulente (una percentuale di quello che hai)</dt>
-    <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su tutto quello che c'è nel conto, non sul guadagno. L'1% su €100 000 fa €1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Si comporta esattamente come il TER qui sopra, solo molto più grande — ed è per questo che ha una sezione tutta sua.</dd>
+    <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su tutto quello che c'è nel conto, non sul guadagno. L'1% su <span class="cur">€</span>100 000 fa <span class="cur">€</span>1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Si comporta esattamente come il TER qui sopra, solo molto più grande — ed è per questo che ha una sezione tutta sua.</dd>
 
     <dt>Correlazione</dt>
     <dd>Se due cose si muovono insieme. +1 significa sempre all'unisono, 0 significa senza relazione, −1 significa opposti perfetti. Azioni e obbligazioni qui sono state circa <b id="dsCorr">0.2</b>: legate, ma poco, che è esattamente ciò che rende utile tenerle entrambe.</dd>
