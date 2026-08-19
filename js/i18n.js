@@ -158,9 +158,15 @@ export function ratePct(x, forceDigits = null) {
  * Italian strings that use them leave it out. English gets the bare percentage.
  */
 function spokenTakesElision(n) {
-  // uno, otto, undici, diciotto, ottanta…ottantanove — the only ones in range
-  // that begin with a vowel when read aloud.
-  return n === 1 || n === 8 || n === 11 || n === 18 || (n >= 80 && n <= 89);
+  // The whole list, for any percentage a reader could see: uno, otto, undici,
+  // ottanta…ottantanove, ottocento…ottocentonovantanove. Everything else starts
+  // with a consonant when read aloud — including 18, which is *diciotto*, and 108,
+  // which is *centotto*: it is the first word that decides, not the last digits.
+  return (
+    n === 1 || n === 8 || n === 11 ||
+    (n >= 80 && n <= 89) ||
+    (n >= 800 && n <= 899)
+  );
 }
 
 function withItalianArticle(text, x) {

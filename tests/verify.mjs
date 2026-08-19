@@ -1411,18 +1411,25 @@ console.log("\n13. TRANSLATIONS — the page must say the same thing in Italian"
     );
 
     setLang("it", { remember: false });
+    // The first word of the spoken number decides, which is why 11 (undici) and
+    // 18 (diciotto) go opposite ways and 108 (centotto) goes with neither.
     const spoken = [
-      pctPhrase(0.118, 1), // undici
-      pctPhrase(0.005, 1), // zero
-      pctPhrase(0.02, 1), // due
-      pctPhrase(0.8, 0), // ottanta
-      pctPhrase(0.12, 0), // dodici
-      ratePhrase(0.0125, 2), // uno
-      ratePhrase(0, 2), // zero
+      pctPhrase(0.118, 1), // undici    -> l'
+      pctPhrase(0.182, 1), // diciotto  -> il
+      pctPhrase(0.005, 1), // zero      -> lo
+      pctPhrase(0.02, 1), //  due       -> il
+      pctPhrase(0.08, 1), //  otto      -> l'
+      pctPhrase(0.8, 0), //   ottanta   -> l'
+      pctPhrase(0.12, 0), //  dodici    -> il
+      pctPhrase(8.4, 0), //   ottocento -> l'
+      pctPhrase(1.08, 0), //  centotto  -> il
+      ratePhrase(0.0125, 2), // uno     -> l'
+      ratePhrase(0, 2), //    zero      -> lo
     ].join(" ");
     check(
       "an Italian percentage carries the article its spoken number takes",
-      spoken === "l'11,8% lo 0,5% il 2,0% l'80% il 12% l'1,25% lo 0,00%",
+      spoken ===
+        "l'11,8% il 18,2% lo 0,5% il 2,0% l'8,0% l'80% il 12% l'840% il 108% l'1,25% lo 0,00%",
       spoken
     );
     setLang("en", { remember: false });

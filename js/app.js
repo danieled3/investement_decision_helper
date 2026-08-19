@@ -155,19 +155,24 @@ function applyHash() {
   // A shared link carries the fees, and a fee implies the flag: a link that
   // arrived with a percentage in it but the box unticked would show one thing and
   // simulate another. Either rate above zero ticks it; both zero, or anything
-  // unreadable, leaves the flag clear. An old link with only "af" in it charges
-  // that rate on the share part and nothing on the bond.
-  const advFrom = (key, id) => {
-    if (!p.has(key)) return 0;
+  // unreadable, leaves the flag clear.
+  const advFrom = (key) => {
+    if (!p.has(key)) return null;
     const fee = parseFloat(p.get(key));
-    if (!Number.isFinite(fee) || fee < 0) return 0;
-    const v = Math.min(5, fee);
-    $(id).value = String(v);
-    return v;
+    if (!Number.isFinite(fee) || fee < 0) return null;
+    return Math.min(5, fee);
   };
-  const advEq = advFrom("af", "advisorFeeRisky");
-  const advBd = advFrom("afb", "advisorFeeSafe");
-  if (advEq > 0 || advBd > 0) $("advisorOn").checked = true;
+  const afEq = advFrom("af");
+  // "af" without "afb" can only be a link made before the fee was split in two,
+  // when the single number meant the same rate on everything — and writeHash now
+  // always emits both keys, so there is no other way to see one alone. Charging
+  // it on the share part only would quietly reopen someone's shared plan as a
+  // cheaper one than the answer they were looking at. An "afb" that is present
+  // but unreadable is a damaged link, not an old one, so it charges nothing.
+  const afBd = p.has("afb") ? (advFrom("afb") ?? 0) : afEq;
+  if (afEq !== null) $("advisorFeeRisky").value = String(afEq);
+  if (afBd !== null) $("advisorFeeSafe").value = String(afBd);
+  if (afEq > 0 || afBd > 0) $("advisorOn").checked = true;
   if (p.has("e") && [...$("era").options].some((o) => o.value === p.get("e"))) {
     $("era").value = p.get("e");
   }

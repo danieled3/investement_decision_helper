@@ -204,6 +204,11 @@ section { scroll-margin-top: 16px; }
 .plan-col .sleeve { padding: 12px 12px 8px; }
 .plan-col .sleeve-note { font-size: 12.5px; line-height: 1.45; margin-bottom: 10px; }
 .plan-col > .row { grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
+/* The consultant's two rates are read as a pair, and their labels are different
+   lengths — "sull'ETF azionario" against "sull'obbligazione" — so on a narrow
+   screen one wraps to more lines than the other. Bottom-align them, or the two
+   boxes end up at different heights and stop looking like one question. */
+#advisorFeeRow .row { align-items: end; }
 /* The sentence that says what the chosen unit means: quieter than a label, and
    tight under the toggle it belongs to. */
 .view-note {
