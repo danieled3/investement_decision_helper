@@ -566,10 +566,12 @@ export const STRINGS = {
       inflazione e guarda crescere il conto fiscale anche se nulla di reale è
       cambiato. Secondo, l'Italia tassa i guadagni degli ETF come
       <em>redditi di capitale</em> ma le perdite come <em>redditi diversi</em>, due
-      categorie separate: una perdita sul fondo obbligazionario <em>non</em> può
-      quindi essere compensata con un guadagno su quello azionario. Nel Regno Unito
-      sì. Prova i due paesi con un piano ricco di obbligazioni in un decennio brutto
-      e vedrai la differenza.`,
+      categorie separate: una perdita sull'ETF azionario <em>non</em> può quindi
+      essere compensata con il guadagno sull'obbligazione. Nel Regno Unito sì. È in
+      questo verso che la regola morde qui, perché un'obbligazione tenuta fino alla
+      scadenza non può chiudere in perdita: il fondo azionario è l'unica parte che
+      può. Prova i due paesi con un piano ricco di azioni in un decennio brutto e
+      vedrai la differenza.`,
   },
   "how.tax.p6": {
     it: `Le imposte vengono tolte dal capitale investito. Se nella vita reale le
@@ -670,7 +672,7 @@ export const STRINGS = {
     <dd>Il modo più comune in cui si pagano la consulenza e la gestione del portafoglio: una percentuale annua su tutto quello che c'è nel conto, non sul guadagno. L'1% su <span class="cur">€</span>100 000 fa <span class="cur">€</span>1 000 all'anno, dovuti sia che l'anno sia andato bene sia che sia andato male, e crescono mentre cresce il capitale. Si comporta esattamente come il TER qui sopra, solo molto più grande — ed è per questo che ha una sezione tutta sua.</dd>
 
     <dt>Correlazione</dt>
-    <dd>Se due cose si muovono insieme. +1 significa sempre all'unisono, 0 significa senza relazione, −1 significa opposti perfetti. Azioni e obbligazioni qui sono state circa <b id="dsCorr">0.2</b>: legate, ma poco, che è esattamente ciò che rende utile tenerle entrambe.</dd>
+    <dd>Se due cose si muovono insieme. +1 significa sempre all'unisono, 0 significa senza relazione, −1 significa opposti perfetti. Le azioni e un <em>fondo</em> obbligazionario in questi dati sono stati circa <b id="dsCorr">0.2</b>: legati, ma poco. L'obbligazione che questo piano tiene resta fino alla scadenza e non ha alcun prezzo di mercato, quindi la sua correlazione con le azioni è esattamente zero: non serve a salire quando le azioni scendono, serve come la parte del capitale che semplicemente non può scendere.</dd>
 
     <dt>Simulazione Monte Carlo</dt>
     <dd>Far passare lo stesso piano attraverso un numero enorme di futuri possibili e poi studiare l'intera collezione di risultati, invece di cercare di indovinare l'unica risposta giusta.</dd>
@@ -1165,8 +1167,8 @@ export const STRINGS = {
     it: "Nessuna imposta annua sul capitale in sé.",
   },
   "js.tax.rule.income": {
-    en: "<b>{eqRate}</b> a year on the dividends the share fund earns and <b>{bdRate}</b> a year on the interest the bond fund earns{allowance}. Assumed yields: {eqYield} on shares, {bdYield} on bonds.{uk}",
-    it: "<b>{eqRate}</b> all'anno sui dividendi che incassa il fondo azionario e <b>{bdRate}</b> all'anno sulle cedole che incassa il fondo obbligazionario{allowance}. Rendimenti ipotizzati: {eqYield} sulle azioni, {bdYield} sulle obbligazioni.{uk}",
+    en: "<b>{eqRate}</b> a year on the dividends the share fund earns and <b>{bdRate}</b> a year on the interest the bond pays{allowance}. Assumed yields: {eqYield} on shares, {bdYield} on the bond.{uk}",
+    it: "<b>{eqRate}</b> all'anno sui dividendi che incassa il fondo azionario e <b>{bdRate}</b> all'anno sulle cedole che paga l'obbligazione{allowance}. Rendimenti ipotizzati: {eqYield} sulle azioni, {bdYield} sull'obbligazione.{uk}",
   },
   "js.tax.rule.allowShare": { en: "{amount} of share income", it: "{amount} di reddito azionario" },
   "js.tax.rule.allowBond": { en: "{amount} of bond income", it: "{amount} di reddito obbligazionario" },

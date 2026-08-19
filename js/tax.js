@@ -1,10 +1,11 @@
 /**
  * Tax model.
  *
- * The investments themselves are the same wherever you live — one world share
- * ETF and one euro government bond ETF. The country you are tax-resident in
- * changes NOTHING about the returns; it only changes what the tax authority
- * takes, and when. So the whole country-specific part of the app lives here.
+ * The two holdings are a world share ETF and a single government bond held to
+ * maturity — a euro-area bond for Italy and "no country", a UK gilt for the UK.
+ * The country decides which government you lend to and in what currency, but
+ * beyond that it changes NOTHING about the returns; it only changes what the tax
+ * authority takes, and when. So the whole country-specific part lives here.
  *
  * There are exactly three ways money can be taken, and a correct model needs
  * all three because they bite at different times:
@@ -26,11 +27,13 @@
  *
  *   3. A tax on the GAIN when you finally sell.
  *      Italy: 26% substitute tax, reduced to 12.5% on the part of the return
- *      coming from white-list government bonds — so a physically-replicated
- *      euro government bond ETF is taxed at ~12.5% and a world share ETF at
- *      26%. Losses on one ETF CANNOT be set against gains on another, because
- *      Italy files ETF gains as "redditi di capitale" and ETF losses as
- *      "redditi diversi" — two buckets that never talk to each other.
+ *      coming from white-list government bonds — and a bond held directly is
+ *      exactly that, so the bond sleeve is taxed at 12.5% and the world share
+ *      ETF at 26%. Losses on one sleeve CANNOT be set against gains on the
+ *      other, because Italy files gains as "redditi di capitale" and losses as
+ *      "redditi diversi" — two buckets that never talk to each other. Held to
+ *      maturity the bond cannot end at a loss, so in practice the rule bites in
+ *      one direction: a share loss cannot shelter the bond's gain.
  *      UK: capital gains tax, 18% inside the basic-rate band and 24% above it,
  *      with a £3,000 tax-free amount each year; losses DO offset gains.
  *

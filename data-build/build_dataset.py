@@ -87,13 +87,30 @@ a locked nominal yield y,
                          = (1+y) * SUM_c w_c/(1+infl_c)  -  1
                          = (1+y) * D  -  1
 
-so the only per-year number the app needs is the GDP-WEIGHTED INFLATION DISCOUNT
+so the per-year number that answers it is the GDP-WEIGHTED INFLATION DISCOUNT
 FACTOR D = SUM_c w_c/(1+infl_c). A hyperinflating member contributes ~0 to D at
 its own weight, which caps the damage at that weight instead of dragging the
-whole average to zero. `infl_discount` below is D; the engine multiplies the
-locked (1+yield) by it each year. (A single weighted yield replaces the per-
-country yields, which is exact up to the tiny covariance between yield spreads
-and inflation across neighbouring sovereigns.)
+whole average to zero. `infl_discount` below is D. (A single weighted yield
+replaces the per-country yields, which is exact up to the tiny covariance between
+yield spreads and inflation across neighbouring sovereigns.)
+
+WHAT D IS AND IS NOT USED FOR
+-----------------------------
+D answers a HISTORICAL question: what did a bond locking yield y actually earn in
+real terms, given the inflation that really happened that year. The
+`*_bond_hold_real_*` statistics printed and shipped below are computed that way,
+and over 1900-2025 they are dominated by the interwar inflations — which is the
+honest historical answer, and the reason the euro figure is negative.
+
+The APP does not deflate by D. It cannot coherently: the page already asks the
+user for one assumed inflation rate and uses it to convert between "today's
+buying power" and "future euros", so deflating the bond by historical inflation
+as well would count inflation twice — and would produce the impossible result of
+a NOMINAL loss on a bond whose cash flows are fixed. Held to maturity the nominal
+return IS the locked yield; the engine's real return is therefore
+(1+y)/(1+assumed inflation)-1, and the bond carries no inflation *risk* in the
+model, only reinvestment risk on maturities shorter than the horizon (plus
+default, which the model does not price at all). See js/engine.js.
 
 Run:  python3 build_dataset.py
 """
@@ -445,10 +462,17 @@ def main():
           f"worst {stats['equity_worst_year']:+.1%} best {stats['equity_best_year']:+.1%}")
     print(f"  euro bond ETF: CAGR {stats['bond_real_cagr']:+.2%}  "
           f"vol {stats['bond_real_vol']:.1%}  (tables only)")
+    # These two lines are the HISTORICAL answer (deflated by the inflation that
+    # actually happened, interwar spikes included), not what the app simulates:
+    # the app deflates the locked yield by the user's single assumed inflation.
     print(f"  euro bond HELD to maturity: CAGR {eu_htm[0]:+.2%}  vol {eu_htm[1]:.1%}  "
           f"worst {eu_htm[2]:+.1%}   yields now {eu_ys[-1]:.2%}/{eu_yl[-1]:.2%}")
     print(f"  UK   bond HELD to maturity: CAGR {uk_htm[0]:+.2%}  vol {uk_htm[1]:.1%}  "
           f"worst {uk_htm[2]:+.1%}   yields now {uk_ys[-1]:.2%}/{uk_yl[-1]:.2%}")
+    print("    (^ real return vs the inflation that actually happened; the app "
+          "instead deflates by the assumed inflation, so at 2% the euro bond is "
+          f"{(1 + eu_yl[-1]) / 1.02 - 1:+.2%} and the gilt "
+          f"{(1 + uk_yl[-1]) / 1.02 - 1:+.2%} a year real)")
 
     def region_payload(yl, ys, disc):
         return {
@@ -475,10 +499,17 @@ def main():
             "bond_hold": "What the app simulates: one government bond bought at the "
                          "yield on offer and held to maturity. Per region it ships "
                          "the short and 10-year yields plus a GDP-weighted inflation "
-                         "discount factor D = SUM w/(1+infl); real return of a bond "
-                         "locking yield y is (1+y)*D-1. Euro = 8 euro-area members "
-                         "(JST + Eurostat, to 2025). UK = UK gilts and UK prices "
-                         "(JST + Eurostat, to 2024; later years carried forward)",
+                         "discount factor D = SUM w/(1+infl). Held to maturity the "
+                         "cash flows are fixed, so the NOMINAL return is the locked "
+                         "yield y itself; the app deflates it by the single assumed "
+                         "inflation the user sets, NOT by D. D is used only for the "
+                         "*_bond_hold_real_* statistics below, which answer the "
+                         "separate historical question 'what did a rolled bond earn "
+                         "in real terms given the inflation that actually happened' "
+                         "-- (1+y)*D-1 per year, hyperinflations included. Euro = 8 "
+                         "euro-area members (JST + Eurostat, to 2025). UK = UK gilts "
+                         "and UK prices (JST + Eurostat, to 2024; later years "
+                         "carried forward)",
             "inflation": "Euro-area consumer prices, GDP-weighted CPI (to 2020), "
                          "Eurostat euro-area HICP (2021+)",
             "sources": [
