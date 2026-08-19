@@ -141,7 +141,9 @@ export const TAX_DEFAULTS = {
   wrapper: "taxable", // "taxable" | "isa" (UK only)
   fundType: "acc", // "acc" | "dist" (matters in Italy)
   equityYield: 0.018, // dividend yield of a world share ETF
-  bondYield: 0.03, // running yield of a euro government bond ETF
+  // Coupon of the bond held. Only a fallback: the page overwrites it with the
+  // yield actually locked for the chosen country and maturity.
+  bondYield: 0.03,
   wealthRate: null, // null = use the country default
 };
 

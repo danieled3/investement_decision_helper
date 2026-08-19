@@ -10,7 +10,7 @@
      seeing the effect needs no scrolling. Every layer of detail below that is a
      closed box, so the tool stays simple until you ask it not to be. -->
 <title>Investment Decision Helper — how much could my money become?</title>
-<meta name="description" content="Put in what you would invest each month in a world share ETF and in euro government bonds, and see the full range of outcomes over the next ten years, measured against every scenario since 1900.">
+<meta name="description" content="Put in what you would invest each month in a world share ETF and in a government bond held to maturity, and see the full range of outcomes over the next ten years, measured against every scenario since 1900.">
 <meta name="color-scheme" content="light dark">
 <!-- Inline favicon: a small rising line, so the page needs no extra request. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M6 24 L13 17 L19 20 L26 9' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
@@ -25,8 +25,8 @@
     <h1 data-i18n="hero.h1">How much could my money become?</h1>
     <p class="lede" data-i18n="hero.lede">
       Split your savings between a <strong>risky</strong> part (shares from around the
-      world) and a <strong>safer</strong> part (euro government bonds), and see the
-      whole range of things that could happen — not just one hopeful number.
+      world) and a <strong>safer</strong> part (a government bond you hold to maturity),
+      and see the whole range of things that could happen — not just one hopeful number.
     </p>
     <p class="sub" data-i18n="hero.sub">
       Every outcome on this page is built from real market history going back to
@@ -83,9 +83,11 @@
       </div>
       <p class="sleeve-note" data-i18n="sleeve.safe.note"
          data-i18n-eur="sleeve.safe.note" data-i18n-gbp="sleeve.safe.note.gbp">
-        You lend money to euro-area governments and they pay you interest. Much
-        steadier than shares in normal times — but it is not risk-free, as 2022
-        showed (<span id="ds2022bd">−25.1%</span> after inflation, in one year).
+        You lend money to a euro-area government at a fixed interest rate and hold
+        the bond to maturity, so you get your money back with its coupons — in
+        future euros it is close to certain. The real risks are inflation eating
+        that fixed interest, and the government defaulting, which no euro founder
+        has ever done on its own-currency debt.
       </p>
       <div class="field">
         <label for="initialSafe" data-i18n="field.initial">Amount you put in today</label>
@@ -270,7 +272,7 @@
         <input id="equityYield" type="number" min="0" max="10" step="0.1" value="1.8" inputmode="decimal">
       </div>
       <div class="field" style="margin:0">
-        <label for="bondYield" data-i18n="field.bondYield">Interest yield of the bond ETF, % a year</label>
+        <label for="bondYield" data-i18n="field.bondYield">Interest yield of the bond, % a year</label>
         <input id="bondYield" type="number" min="0" max="15" step="0.1" value="3" inputmode="decimal">
       </div>
       <div class="field" style="margin:0">
@@ -456,17 +458,19 @@
 
     <div class="callout warn" data-i18n="tax.warn">
       <strong>This is a tax calculator, not a tax adviser.</strong> It uses the headline
-      rates for a straightforward private investor holding two ordinary UCITS ETFs, and
-      it cannot know your situation. Three real complications it deliberately ignores:
+      rates for a straightforward private investor holding a world share ETF and a
+      single government bond, and it cannot know your situation. Three real
+      complications it deliberately ignores:
       <ul style="margin:8px 0 0">
         <li>
-          In Italy the reduced 12.5% rate applies to the government-bond part of the
-          return only if the fund actually holds white-list government bonds. A
-          <em>synthetic</em> bond ETF, which tracks the index through a swap instead of
-          owning the bonds, can lose that treatment and be taxed entirely at 26%.
+          In Italy the reduced 12.5% rate is applied to the bond, which is right for a
+          directly-held white-list government bond. Hold the bond part through a
+          <em>synthetic</em> ETF instead — one that tracks the index through a swap
+          rather than owning the bonds — and it can lose that treatment and be taxed
+          entirely at 26%.
         </li>
         <li>
-          In the UK the numbers here assume both funds have <em>UK reporting status</em>.
+          In the UK the numbers here assume the share ETF has <em>UK reporting status</em>.
           A fund without it is taxed on the whole gain as income at your marginal rate,
           which is far worse than the capital-gains treatment shown.
         </li>
@@ -567,23 +571,21 @@
     and <strong>holds it to maturity</strong> — so, unlike a bond fund, it never sells
     at a loss when interest rates rise: you simply collect the interest you were
     promised and get your capital back. You choose how long each bond runs; when it
-    matures the money buys another at whatever rate is on offer then. The one thing
-    that can still hurt you is <strong>inflation</strong>, which quietly eats a fixed
-    payment. Over the whole period since <span id="dsRange3">1900</span> a euro-area
-    bond held this way returned <b id="dsBondCagr">−0.9%</b> a year <em>after</em>
-    inflation — the two world wars and the <b id="dsBondWorstYear">1923</b>
-    hyperinflation destroyed bondholders in real terms even though every bond was
-    repaid in full. (Pick the UK and you lend to the UK government instead, in pounds.)
+    matures the money buys another at whatever rate is on offer then. In future-euro
+    terms the outcome is close to certain. The one thing that can still erode it is
+    <strong>inflation</strong>, which quietly eats a fixed payment — a euro-area bond
+    held right through the <b id="dsBondWorstYear">1923</b> hyperinflation lost almost
+    all its real value even though every bond was repaid in full. (Pick the UK and you
+    lend to the UK government instead, in pounds.)
   </p>
   <div class="callout" data-i18n="how.choice.why">
-    <strong>So why hold bonds at all?</strong> Because they usually zig when shares
-    zag, which makes the journey calmer and makes you more likely to stay invested.
-    Notice what happens to the “lowest point” and “biggest fall” numbers when you move
-    money between the two boxes — that is the trade you are actually making.
-    But “usually” is doing real work in that sentence: in 2022 both fell together,
-    shares <b id="ds2022eq">−18%</b> and bonds <b id="ds2022bd2">−25%</b> after
-    inflation. The simulation keeps shares and bonds from the same year precisely so
-    that years like that stay possible.
+    <strong>So why not put everything in shares?</strong> Because the bond sleeve is
+    nearly certain: held to maturity, you already know roughly what you will get from
+    it. Move money out of shares and into it, and watch the “lowest point”, the
+    “biggest fall” and the worst-case ending all shrink — and the best case shrink
+    too. That is the trade you are really making: less upside in exchange for a floor
+    you can count on. Shares are where the growth is; the bond is where the certainty
+    is.
   </div>
 
   <h3 data-i18n="how.units.title">“Future euros” versus “today's buying power”</h3>
@@ -836,7 +838,7 @@
     <dd>The flat tax on investment gains, 26%, which replaces income tax on them. Reduced to 12.5% on the part of the return that comes from government bonds of countries on Italy's “white list” — which is why the bond part of this plan is taxed more gently than the share part.</dd>
 
     <dt>White list (Italy)</dt>
-    <dd>The official list of countries whose government bonds get the reduced 12.5% rate rather than 26%. It includes all euro-area governments, so a euro government bond ETF that really holds the bonds qualifies.</dd>
+    <dd>The official list of countries whose government bonds get the reduced 12.5% rate rather than 26%. It includes all euro-area governments, so the euro government bond this plan holds directly qualifies.</dd>
 
     <dt>Capital gains tax (UK)</dt>
     <dd>Tax on the profit when you sell, not on the money you invested. 18% if your income keeps you in the basic-rate band, 24% above it, and the first £3,000 of gains in a tax year is free. Losses can be set against gains — which is not true in Italy.</dd>
@@ -879,7 +881,7 @@
   </p>
   <ul data-i18n="data.jst.list">
     <li><strong>World shares</strong> = the average real equity return across the 16 countries that report equity data, weighted by each country's economy size.</li>
-    <li><strong>Euro bonds</strong> = the same calculation across Germany, France, Italy, Spain, the Netherlands, Belgium, Portugal and Finland.</li>
+    <li><strong>Bond yields</strong> = the long and short government interest rates, averaged the same way across Germany, France, Italy, Spain, the Netherlands, Belgium, Portugal and Finland for the euro, or taken straight from gilts for the UK. These are the rates the app locks in; the bond <em>fund</em> return series from the same source is only used for the historical tables further down.</li>
     <li><strong>Weights use the <em>previous</em> year's economy size</strong>, so the calculation never uses information it could not have had at the time.</li>
     <li>Real return per country = (1 + that country's total return) ÷ (1 + that country's inflation) − 1.</li>
   </ul>
@@ -900,7 +902,7 @@
   <div class="table-wrap">
     <table>
       <caption class="skip" data-i18n="data.stats.caption">Long-run statistics of the two assets, after inflation</caption>
-      <thead><tr><th data-i18n="data.stats.th">After inflation, <span id="dsRange6">1900–2025</span></th><th data-i18n="data.col.shares">World shares</th><th data-i18n="data.col.bonds">Euro government bonds</th></tr></thead>
+      <thead><tr><th data-i18n="data.stats.th">After inflation, <span id="dsRange6">1900–2025</span></th><th data-i18n="data.col.shares">World shares</th><th data-i18n="data.col.bondFund">Euro government bond <em>fund</em></th></tr></thead>
       <tbody>
         <tr><td data-i18n="data.row.cagr">Growth per year</td><td id="dsEquityCagr2">—</td><td id="dsBondCagr2">—</td></tr>
         <tr><td data-i18n="data.row.vol">Year-to-year bounce</td><td id="dsEquityVol">—</td><td id="dsBondVol">—</td></tr>
@@ -909,6 +911,12 @@
       </tbody>
     </table>
   </div>
+  <p class="sub" data-i18n="data.stats.note">
+    The bond column is a <em>fund</em> that buys and sells bonds at market prices —
+    which is why it bounces, and why over this whole span it lost to inflation. The
+    app does not simulate that fund. It buys one bond at the rate on offer and holds
+    it to maturity, which is the row in the next-but-one table.
+  </p>
 
   <h3 data-i18n="data.worst.title">The five worst years on record</h3>
   <div class="table-wrap">
@@ -919,17 +927,19 @@
     </table>
   </div>
   <p class="sub" data-i18n="data.worst.note">
-    Two of those bond years are the German hyperinflation and its aftermath, which
-    wiped out domestic bondholders completely. That is not a statistical glitch — it
-    is why the “1 in 100” bond outcome looks as grim as it does, and why the era
-    selector in the options box exists.
+    Those bond years are for a marked-to-market <em>fund</em> — two of them are the
+    German hyperinflation and its aftermath, which wiped out domestic bondholders
+    completely. This app does not simulate a fund: it buys one bond and holds it to
+    maturity, so it never takes these price hits. The figures are shown only so you
+    can see why a fund is a rougher ride than the single bond the app actually uses.
   </p>
 
   <h3 data-i18n="data.era.title">The era you are learning from right now</h3>
   <div class="table-wrap">
     <table>
       <caption class="skip" data-i18n="data.era.caption">Statistics for the selected historical era</caption>
-      <thead><tr><th data-i18n="data.era.th"><span id="eraYears">1900–2025</span> (<span id="eraN">126</span> years)</th><th data-i18n="data.col.shares">World shares</th><th data-i18n="data.col.bonds">Euro government bonds</th></tr></thead>
+      <thead><tr><th data-i18n="data.era.th"><span id="eraYears">1900–2025</span> (<span id="eraN">126</span> years)</th><th data-i18n="data.col.shares">World shares</th><th data-i18n="data.col.bondHeld"
+        data-i18n-eur="data.col.bondHeld" data-i18n-gbp="data.col.bondHeld.gbp">The euro bond you hold</th></tr></thead>
       <tbody>
         <tr><td data-i18n="data.era.row.cagr">Growth per year, after inflation</td><td id="eraEquityCagr">—</td><td id="eraBondCagr">—</td></tr>
         <tr><td data-i18n="data.row.vol">Year-to-year bounce</td><td id="eraEquityVol">—</td><td id="eraBondVol">—</td></tr>
@@ -937,6 +947,13 @@
       </tbody>
     </table>
   </div>
+  <p class="sub" data-i18n="data.era.note">
+    The bond figure is the real yield you can lock in <em>today</em> and hold to
+    maturity — the coupon less the inflation you assume. Held to maturity it has no
+    market price to bounce and does not move with shares, so its year-to-year bounce
+    and its correlation with equities are both zero. Shorter maturities still carry
+    some risk because you must reinvest at unknown future rates.
+  </p>
 
   <h3 data-i18n="data.weak.title">Honest weaknesses in the data</h3>
   <ul data-i18n="data.weak.list">
@@ -944,7 +961,8 @@
     <li><strong>Yearly data, not daily.</strong> Before <span id="dsSplice2">2020</span> we only have one number per year. The month-by-month detail is reconstructed statistically, not observed.</li>
     <li><strong>Only countries that survived as data providers.</strong> The dataset covers advanced economies that kept records. Markets that were closed or destroyed — Russia in 1917, China in 1949 — are absent, which makes history look slightly kinder than it was.</li>
     <li><strong>The join in <span id="dsSpliceFrom2">2021</span>.</strong> Two different kinds of measurement are stitched together. They were checked against each other on the years where both exist, and they agree closely, but a join is a join.</li>
-    <li><strong>The euro did not exist for most of this history.</strong> “Euro government bonds” before 1999 means the bonds of the countries that later formed the euro, in their own currencies.</li>
+    <li><strong>The euro did not exist for most of this history.</strong> “Euro” before 1999 means the countries that later formed the euro — their bonds, their interest rates and their inflation, each in its own currency.</li>
+    <li><strong>Today's interest rate is not a forecast of tomorrow's.</strong> The bond you buy now locks a rate that is known; every bond after it is priced off a year drawn from history, which is a way of saying “rates have been all sorts of things” rather than a prediction. And the model never prices a government failing to pay — rare, but not impossible.</li>
   </ul>
 
   <h3 data-i18n="data.check.title">Check it yourself</h3>
@@ -957,7 +975,7 @@
     <li><code>data/returns.json</code> — the <b id="dsN3">126</b> years of returns, in plain text</li>
     <li><code>js/engine.js</code> — the simulation itself</li>
     <li><code>js/tax.js</code> — the whole country-specific tax model, rates included</li>
-    <li><code>tests/verify.mjs</code> — <b id="dsChecks">90</b> checks, including proofs against closed-form algebra where one exists</li>
+    <li><code>tests/verify.mjs</code> — <b id="dsChecks">132</b> checks, including proofs against closed-form algebra where one exists</li>
     <li><code>tests/calibrate_blocks.mjs</code> — the study that chose the five-year stretch length</li>
   </ul>
   <p class="sub" data-i18n="data.check.seed">

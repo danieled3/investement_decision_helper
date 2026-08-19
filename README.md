@@ -1,10 +1,10 @@
 # Investment Decision Helper
 
 **How much could my money become?** — a single-page web app that takes a split
-between a world share ETF (the risky part) and a euro government bond ETF (the
-safer part), and shows what history says could happen to it: the middle outcome,
-the good outcomes, the bad ones, the lowest point along the way, and what the
-taxman takes.
+between a world share ETF (the risky part) and a single government bond held to
+maturity (the safer part), and shows what history says could happen to it: the
+middle outcome, the good outcomes, the bad ones, the lowest point along the way,
+and what the taxman takes.
 
 👉 **[Open the app](https://danieled3.github.io/investement_decision_helper/)**
 
@@ -66,35 +66,47 @@ returns, 1900–2025, built by `data-build/build_dataset.py`:
 | Series | 1900–2020 | 2021–2025 |
 |---|---|---|
 | World shares | Jordà–Schularick–Taylor Macrohistory DB R6, GDP-weighted across the 16 advanced economies that report equity data | iShares Core MSCI World UCITS ETF (IWDA.AS), EUR |
-| Euro government bonds | JST R6, GDP-weighted across 8 euro-area member states | iShares Core EUR Govt Bond UCITS ETF (IEGA.AS), EUR |
-| Inflation | JST CPI, same GDP weights | Eurostat `prc_hicp_aind`, euro-area HICP |
+| Government bond yields | JST R6 long/short rates, GDP-weighted per region (8 euro-area members; UK gilts) | Eurostat `irt_lt_mcby_a` (10y) and `irt_st_a` (3-month), euro area and UK |
+| Inflation | JST CPI, same GDP weights | Eurostat `prc_hicp_aind`; UK from World Bank `FP.CPI.TOTL` |
+
+The bond sleeve is **not** a marked-to-market fund: it is one government bond
+bought at the yield on offer and **held to maturity**, so it has no price risk.
+Its nominal return is the coupon it locked; its real return is that coupon less the
+assumed inflation. `data/returns.json` therefore ships, per region, the short and
+10-year yields and a GDP-weighted inflation discount factor, alongside the equity
+real-return series. (The old euro bond-fund total-return series, IEGA.AS included,
+is still built and kept for the historical tables, but is no longer simulated.)
 
 Weights are **lagged** real GDP (`rgdpmad × pop`), renormalised each year over the
 countries actually reporting, so there is no look-ahead bias. GDP weights are used
 because long-run market-capitalisation weights do not exist back to 1900.
 
 Long-run figures that fall out of that dataset: shares +6.2% a year real with 15.0%
-volatility, euro government bonds −0.9% a year real with 10.7% volatility (the two
-world wars and the inflations that followed them are brutal for bonds), correlation
-+0.27, worst single year −40.1% for shares and −39.8% for bonds.
+volatility, worst single year −40.1%. The euro bond you can lock today yields about
+3.1% (UK gilts about 4.1%); held to maturity that is roughly +1% a year real at the
+2% assumed inflation, with no year-to-year price swing.
 
 ## How the simulation works
 
 Two engines, shown side by side:
 
 1. **Stationary block bootstrap** (Politis & Romano, 1994) — the main engine.
-   It resamples *blocks* of consecutive years rather than single years, with
-   geometrically-distributed block lengths, so momentum, crashes and multi-year
-   inflations survive the resampling. Equity and bond years are always drawn
-   **jointly**, which preserves the correlation between them.
+   It resamples *blocks* of consecutive years of **equity** returns rather than
+   single years, with geometrically-distributed block lengths, so momentum and
+   multi-year crashes survive the resampling. The bond is not resampled as a
+   return series: the first bond locks today's yield with certainty, and each
+   later roll locks the yield of whatever year the bootstrap has landed on, which
+   is where a short bond's reinvestment risk comes from.
 2. **Historical overlay** — every actual window of the chosen length in the data
    (1900–2015 for a 10-year horizon, and so on), computed exactly, no resampling.
-   If the bootstrap disagreed with these, the bootstrap would be wrong.
+   Each window's bond locks the yield available at the window's start. If the
+   bootstrap disagreed with these, the bootstrap would be wrong.
 
-Inside a year, monthly paths are drawn with a **Brownian bridge** pinned to that
+Inside a year, the equity path is drawn with a **Brownian bridge** pinned to that
 year's exact annual return, so monthly contributions are priced sensibly without
-inventing extra annual variance. Randomness is a seeded `mulberry32` + Box–Muller,
-so every run is reproducible from the URL.
+inventing extra annual variance; the bond, having no price risk, accretes its
+locked return smoothly. Randomness is a seeded `mulberry32` + Box–Muller, so every
+run is reproducible from the URL.
 
 ## Tax
 
@@ -111,8 +123,12 @@ paid in year 3 stops compounding for the remaining years, and always on the
 | Losses on one fund offset gains on the other | **no** (*redditi di capitale* vs *redditi diversi*) | yes |
 | Tax-free wrapper | — | ISA |
 
-The country you pick changes **only** the tax. The two funds are the same wherever
-you live, so nothing else on the page depends on it.
+The country you pick sets the tax **and** which government you lend to: euro
+government bonds in euros for Italy and "no country", UK gilts in pounds for the
+UK (the whole page — amounts, allowances, the "future pounds" label — switches
+currency with it). The world share ETF is unchanged either way: a globally
+diversified fund earns much the same *real* return whether you measure it in euros
+or pounds, so only the bond and the currency depend on the choice.
 
 Every figure in the chart — the bands, the lowest point, the drawdowns — is the
 **after-tax liquidation value**: what you would actually keep if you sold on that
@@ -154,7 +170,7 @@ A minute later the app is live at the link at the top of this file.
 ## Tests
 
 ```sh
-npm test           # node tests/verify.mjs  →  125 checks
+npm test           # node tests/verify.mjs  →  132 checks
 ```
 
 `tests/verify.mjs` is a correctness proof, not a smoke test. Among other things it

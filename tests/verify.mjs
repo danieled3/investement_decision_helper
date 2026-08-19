@@ -1356,21 +1356,74 @@ console.log("\n14. BONDS HELD TO MATURITY — yield locked, eroded only by infla
   );
 }
 
-// ---- the hyperinflation artifact is gone --------------------------------
+// ---- a bond held to its maturity cannot lose money in nominal terms -----
 {
-  // Worst single-year held-to-maturity real return on the shipped euro curve.
-  // The wrong (aggregate) construction produced -100% in 1923; the per-country
-  // discount factor caps it far short of that.
-  const h = data.bond_hold.eur;
-  let worst = Infinity;
-  for (let i = 1; i < data.years.length; i++) {
-    const real = (1 + h.yield_long[i - 1]) * h.infl_discount[i] - 1;
-    if (real < worst) worst = real;
+  // The whole point of a single bond held to maturity: its cash flows are
+  // fixed, so in future-euro (nominal) terms you cannot end below what you paid
+  // in, whatever inflation does. When the maturity equals the horizon there is
+  // not even a reinvestment to worry about, so every path is the SAME certain
+  // outcome. This is the behaviour a real bondholder expects and the reason the
+  // sleeve is modelled as held-to-maturity rather than as a marked-to-market
+  // fund. (Default risk is the one thing left, and the model does not price it.)
+  for (const currency of ["eur", "gbp"]) {
+    const o = {
+      initialRisky: 0, initialSafe: 10000, monthlyRisky: 0, monthlySafe: 300,
+      years: 10, bondMaturity: 10, nPaths: 5000, seed: 3, currency, tax: null,
+    };
+    const r = simulate(data, o);
+    check(
+      `a ${currency} bond held to maturity never ends below money paid in, in nominal terms`,
+      r.nominal.probBelowPaidIn === 0,
+      `prob below paid in (nominal) = ${(r.nominal.probBelowPaidIn * 100).toFixed(2)}%`
+    );
+    check(
+      `${currency}: maturity == horizon gives one certain nominal outcome (no spread)`,
+      rel(r.nominal.final.p1, r.nominal.final.p99) < 1e-9,
+      `p1 ${eur(r.nominal.final.p1)} vs p99 ${eur(r.nominal.final.p99)}`
+    );
   }
+  // A shorter maturity has to be rolled over at unknown future yields, so it is
+  // no longer certain: the outcome now has a genuine spread.
+  const short = simulate(data, {
+    initialRisky: 0, initialSafe: 10000, monthlyRisky: 0, monthlySafe: 300,
+    years: 10, bondMaturity: 2, nPaths: 5000, seed: 3, currency: "eur", tax: null,
+  });
   check(
-    "no year wipes out the euro bond in real terms (per-country discount, not aggregate)",
-    worst > -0.5,
-    `worst held-to-maturity year ${(worst * 100).toFixed(1)}%`
+    "a shorter maturity carries reinvestment risk, so its outcome spreads out",
+    rel(short.nominal.final.p1, short.nominal.final.p99) > 0.02,
+    `p1 ${eur(short.nominal.final.p1)} vs p99 ${eur(short.nominal.final.p99)}`
+  );
+}
+
+// ---- the country decides the bond, and a wrapper does not change it ----
+{
+  // An ISA is a wrapper around UK holdings, so it must still hold a gilt. The
+  // resolved plan id becomes "gb_isa" rather than "gb", and matching it exactly
+  // would silently hand a UK investor a euro bond while the page kept pricing
+  // everything in pounds — a lower yield with no visible cause.
+  const base = {
+    initialRisky: 0, initialSafe: 10000, monthlyRisky: 0, monthlySafe: 300,
+    years: 10, bondMaturity: 10, nPaths: 2000, seed: 3,
+  };
+  const gilt = simulate(data, { ...base, currency: "gbp", tax: null });
+  const isa = simulate(data, {
+    ...base, tax: resolveTaxPlan({ country: "gb", wrapper: "isa" }),
+  });
+  const bund = simulate(data, { ...base, currency: "eur", tax: null });
+  check(
+    "a UK ISA still holds a gilt, not a euro bond",
+    rel(isa.era.bondCagr, gilt.era.bondCagr) < 1e-9,
+    `isa ${(isa.era.bondCagr * 100).toFixed(2)}% vs gilt ${(gilt.era.bondCagr * 100).toFixed(2)}%`
+  );
+  check(
+    "an ISA is worth more than the same UK plan taxed",
+    isa.nominal.final.p50 >
+      simulate(data, { ...base, tax: resolveTaxPlan({ country: "gb" }) }).nominal.final.p50
+  );
+  check(
+    "the gilt and the euro bond really are different, so that test can fail",
+    rel(gilt.era.bondCagr, bund.era.bondCagr) > 0.1,
+    `gilt ${(gilt.era.bondCagr * 100).toFixed(2)}% vs bund ${(bund.era.bondCagr * 100).toFixed(2)}%`
   );
 }
 
@@ -1382,11 +1435,14 @@ console.log("\n14. BONDS HELD TO MATURITY — yield locked, eroded only by infla
     equity_real: Array.from({ length: n }, (_, i) => 0.04 + 0.02 * Math.sin(i)),
     bond_real: Array(n).fill(0.0),
     inflation: Array(n).fill(0.02),
+    // The curve is constant over time (short != long, so maturity still
+    // matters) so that the Monte Carlo's "buy today" first lock equals every
+    // historical window's start-of-window lock — the two can then be compared.
     bond_hold: {
       eur: {
-        yield_short: Array.from({ length: n }, (_, i) => 0.02 + 0.001 * i),
-        yield_long: Array.from({ length: n }, (_, i) => 0.05 + 0.001 * i),
-        infl_discount: Array.from({ length: n }, (_, i) => 1 / (1 + 0.02 + 0.005 * Math.cos(i))),
+        yield_short: Array(n).fill(0.02),
+        yield_long: Array(n).fill(0.05),
+        infl_discount: Array(n).fill(1 / 1.02),
       },
     },
   };

@@ -10,7 +10,7 @@
  */
 
 import { createFanChart, createHistogram } from "./chart.js";
-import { DEFAULTS } from "./engine.js";
+import { DEFAULTS, currentYield } from "./engine.js";
 import {
   t, num, count, euro, pct, signedPct, ratePct,
   initI18n, setLang, getLang, onLangChange, setCurrency, currency,
@@ -323,6 +323,9 @@ function wireControls() {
   // so unlike the real/nominal toggle these cannot be applied to a finished run.
   $("taxCountry").addEventListener("change", () => syncTaxFields(true));
   $("taxWrapper").addEventListener("change", () => syncTaxFields());
+  // A shorter bond locks a different coupon, so the income the taxman sees moves
+  // with the maturity too.
+  $("bondMaturity").addEventListener("change", () => syncBondYield());
 
   $("advisorOn").addEventListener("change", () => syncAdvisorFields());
 
@@ -487,6 +490,21 @@ function syncTaxFields(countryChanged = false) {
     const r = REGIMES[c] || REGIMES.none;
     $("wealthRate").value = (r.wealthRate * 100).toFixed(2).replace(/\.?0+$/, "");
   }
+  syncBondYield();
+}
+
+/**
+ * Held to maturity, the coupon the taxman charges you on is not a guess: it is
+ * the yield the bond locked. So the assumed bond yield follows the country and
+ * the maturity — a gilt pays more than a bund, a 1-year bond less than a 10-year
+ * one — instead of leaving a flat 3% behind that would tax the wrong income.
+ */
+function syncBondYield() {
+  if (!DATA) return;
+  const cur = $("taxCountry").value === "gb" ? "gbp" : "eur";
+  const y = currentYield(DATA, cur, Number($("bondMaturity").value) || 10);
+  if (y === null) return;
+  $("bondYield").value = (y * 100).toFixed(2).replace(/\.?0+$/, "");
 }
 
 /**

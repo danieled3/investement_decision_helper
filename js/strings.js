@@ -34,8 +34,8 @@ export const STRINGS = {
   "hero.h1": { it: "Quanto potrebbero diventare i miei soldi?" },
   "hero.lede": {
     it: `Dividi i tuoi risparmi tra una parte <strong>rischiosa</strong> (azioni di
-      tutto il mondo) e una parte <strong>più sicura</strong> (obbligazioni
-      governative in euro), e guarda tutta la gamma di ciò che può succedere —
+      tutto il mondo) e una parte <strong>più sicura</strong> (un titolo di Stato
+      che tieni fino a scadenza), e guarda tutta la gamma di ciò che può succedere —
       non solo un unico numero rassicurante.`,
   },
   "hero.sub": {
@@ -56,10 +56,11 @@ export const STRINGS = {
   },
   "sleeve.safe.title": { it: "Parte più sicura — obbligazioni governative in euro" },
   "sleeve.safe.note": {
-    it: `Presti denaro ai governi dell'area euro e loro ti pagano un interesse.
-      Molto più tranquilla delle azioni in tempi normali — ma non è priva di
-      rischio, come ha mostrato il 2022 (<span id="ds2022bd">−25,1%</span> al
-      netto dell'inflazione, in un solo anno).`,
+    it: `Presti denaro a un governo dell'area euro a un tasso fisso e tieni
+      l'obbligazione fino alla scadenza, così riavi il capitale con le cedole —
+      in euro futuri è quasi certo. I rischi veri sono l'inflazione che erode
+      quell'interesse fisso e il fallimento dello Stato, cosa che nessun paese
+      fondatore dell'euro ha mai fatto sul proprio debito in valuta nazionale.`,
   },
   // Shown instead of the two above when the tax country is the UK: the bond is a
   // gilt, in pounds.
@@ -68,13 +69,16 @@ export const STRINGS = {
     it: "Parte più sicura — titoli di Stato britannici (gilt)",
   },
   "sleeve.safe.note.gbp": {
-    en: `You lend money to the UK government and it pays you interest. Much
-      steadier than shares in normal times — but not risk-free: 2022 was brutal
-      for gilts, and the 1970s were worse once inflation is counted.`,
-    it: `Presti denaro al governo britannico e ti paga un interesse. Molto più
-      tranquilla delle azioni in tempi normali — ma non priva di rischio: il 2022
-      è stato durissimo per i gilt, e gli anni '70 peggio ancora al netto
-      dell'inflazione.`,
+    en: `You lend money to the UK government at a fixed interest rate and hold the
+      gilt to maturity, so you get your money back with its coupons — in future
+      pounds it is close to certain. The real risks are inflation eating that
+      fixed interest, and the government defaulting, which the UK has never done
+      on its own-currency debt.`,
+    it: `Presti denaro al governo britannico a un tasso fisso e tieni il gilt fino
+      alla scadenza, così riavi il capitale con le cedole — in sterline future è
+      quasi certo. I rischi veri sono l'inflazione che erode quell'interesse fisso
+      e il fallimento dello Stato, cosa che il Regno Unito non ha mai fatto sul
+      proprio debito in valuta nazionale.`,
   },
 
   "field.initial": { it: "Quanto metti oggi" },
@@ -158,7 +162,7 @@ export const STRINGS = {
       parte che alcuni paesi tassano ogni anno.`,
   },
   "field.equityYield": { it: "Dividendo dell'ETF azionario, % all'anno" },
-  "field.bondYield": { it: "Cedola dell'ETF obbligazionario, % all'anno" },
+  "field.bondYield": { it: "Cedola dell'obbligazione, % all'anno" },
   "field.wealthRate": { it: "Imposta annua sul patrimonio investito, %" },
   "adv.reset": { it: "Riporta tutto ai valori predefiniti" },
 
@@ -255,22 +259,22 @@ export const STRINGS = {
   "tax.rules.title": { it: "Cosa viene applicato" },
   "tax.warn": {
     it: `<strong>Questo è un calcolatore di imposte, non un consulente fiscale.</strong>
-      Usa le aliquote ordinarie per un normale investitore privato che detiene due
-      comuni ETF UCITS, e non può conoscere la tua situazione. Tre complicazioni
-      reali che ignora deliberatamente:
+      Usa le aliquote ordinarie per un normale investitore privato che detiene un ETF
+      azionario mondiale e una singola obbligazione governativa, e non può conoscere
+      la tua situazione. Tre complicazioni reali che ignora deliberatamente:
       <ul style="margin:8px 0 0">
         <li>
-          In Italia l'aliquota ridotta del 12,5% si applica alla parte governativa
-          del rendimento solo se il fondo detiene davvero titoli di Stato white
-          list. Un ETF obbligazionario <em>sintetico</em>, che replica l'indice con
-          uno swap invece di possedere i titoli, può perdere quel trattamento ed
-          essere tassato interamente al 26%.
+          In Italia l'aliquota ridotta del 12,5% è applicata all'obbligazione, il che
+          è corretto per un titolo di Stato white list detenuto direttamente. Detieni
+          invece la parte obbligazionaria tramite un ETF <em>sintetico</em> — che
+          replica l'indice con uno swap invece di possedere i titoli — e può perdere
+          quel trattamento ed essere tassato interamente al 26%.
         </li>
         <li>
-          Per il Regno Unito i numeri qui presuppongono che entrambi i fondi abbiano
-          il <em>reporting status</em> britannico. Un fondo che non lo ha viene
-          tassato su tutto il guadagno come reddito, all'aliquota marginale: molto
-          peggio del trattamento da capital gain mostrato qui.
+          Per il Regno Unito i numeri qui presuppongono che l'ETF azionario abbia il
+          <em>reporting status</em> britannico. Un fondo che non lo ha viene tassato
+          su tutto il guadagno come reddito, all'aliquota marginale: molto peggio del
+          trattamento da capital gain mostrato qui.
         </li>
         <li>
           Aliquote, scaglioni e franchigie cambiano. Queste sono quelle in vigore per
@@ -344,25 +348,21 @@ export const STRINGS = {
       differenza di un fondo obbligazionario, non la vende mai in perdita quando i
       tassi salgono — incassi l'interesse promesso e riprendi il capitale. Scegli tu
       quanto dura ogni obbligazione; a scadenza il denaro ne compra un'altra al tasso
-      disponibile allora. L'unica cosa che può ancora farti male è
-      l'<strong>inflazione</strong>, che erode in silenzio un pagamento fisso. Su
-      tutto il periodo dal <span id="dsRange3">1900</span> un'obbligazione dell'area
-      euro tenuta così ha reso <b id="dsBondCagr">−0,9%</b> all'anno <em>al netto</em>
-      dell'inflazione: le due guerre mondiali e l'iperinflazione del
-      <b id="dsBondWorstYear">1923</b> hanno distrutto gli obbligazionisti in termini
-      reali anche se ogni obbligazione è stata rimborsata per intero. (Scegli il Regno
-      Unito e presti invece al governo britannico, in sterline.)`,
+      disponibile allora. In euro futuri il risultato è quasi certo. L'unica cosa che
+      può ancora eroderlo è l'<strong>inflazione</strong>, che divora in silenzio un
+      pagamento fisso: un'obbligazione dell'area euro tenuta per tutta l'iperinflazione
+      del <b id="dsBondWorstYear">1923</b> perse quasi tutto il suo valore reale anche
+      se ogni obbligazione fu rimborsata per intero. (Scegli il Regno Unito e presti
+      invece al governo britannico, in sterline.)`,
   },
   "how.choice.why": {
-    it: `<strong>E allora perché tenere obbligazioni?</strong> Perché di solito salgono
-      quando le azioni scendono, il che rende il viaggio più tranquillo e rende più
-      probabile che tu resti investito. Guarda cosa succede ai numeri “punto più
-      basso” e “caduta più profonda” quando sposti denaro da una parte all'altra:
-      è quello lo scambio che stai davvero facendo. Ma “di solito” è una parola che
-      lavora molto in quella frase: nel 2022 sono scese insieme, azioni
-      <b id="ds2022eq">−18%</b> e obbligazioni <b id="ds2022bd2">−25%</b> al netto
-      dell'inflazione. La simulazione tiene azioni e obbligazioni dello stesso anno
-      proprio perché anni come quello restino possibili.`,
+    it: `<strong>E allora perché non mettere tutto in azioni?</strong> Perché la parte
+      obbligazionaria è quasi certa: tenuta fino a scadenza, sai già più o meno cosa ti
+      darà. Sposta denaro dalle azioni verso di essa e guarda “punto più basso”,
+      “caduta più profonda” e caso peggiore rimpicciolirsi tutti — e anche il caso
+      migliore. È questo lo scambio che stai davvero facendo: meno rialzo in cambio di
+      un pavimento su cui puoi contare. Le azioni sono dove sta la crescita;
+      l'obbligazione è dove sta la certezza.`,
   },
 
   "how.units.title": { it: "“Euro futuri” contro “potere d'acquisto di oggi”" },
@@ -627,7 +627,7 @@ export const STRINGS = {
     <dd>L'imposta fissa sui guadagni finanziari, il 26%, che sostituisce l'imposta sul reddito. Ridotta al 12,5% sulla parte del rendimento che viene da titoli di Stato di paesi nella “white list” italiana — ed è per questo che la parte obbligazionaria di questo piano è tassata più dolcemente di quella azionaria.</dd>
 
     <dt>White list (Italia)</dt>
-    <dd>L'elenco ufficiale dei paesi i cui titoli di Stato hanno l'aliquota ridotta del 12,5% invece del 26%. Comprende tutti i governi dell'area euro, quindi un ETF obbligazionario governativo in euro che possiede davvero i titoli rientra.</dd>
+    <dd>L'elenco ufficiale dei paesi i cui titoli di Stato hanno l'aliquota ridotta del 12,5% invece del 26%. Comprende tutti i governi dell'area euro, quindi il titolo di Stato in euro che questo piano detiene direttamente rientra.</dd>
 
     <dt>Capital gains tax (Regno Unito)</dt>
     <dd>L'imposta sul guadagno quando vendi, non sul denaro investito. 18% se il tuo reddito ti tiene nello scaglione base, 24% sopra, e i primi £3.000 di guadagno in un anno fiscale sono esenti. Le perdite possono essere compensate con i guadagni — cosa che in Italia non è vera.</dd>
@@ -665,7 +665,7 @@ export const STRINGS = {
   },
   "data.jst.list": {
     it: `<li><strong>Azioni mondiali</strong> = la media dei rendimenti azionari reali dei 16 paesi che riportano dati azionari, pesata per la dimensione dell'economia di ciascuno.</li>
-      <li><strong>Obbligazioni in euro</strong> = lo stesso calcolo su Germania, Francia, Italia, Spagna, Paesi Bassi, Belgio, Portogallo e Finlandia.</li>
+      <li><strong>Rendimenti obbligazionari</strong> = i tassi d'interesse governativi a lungo e a breve, mediati allo stesso modo su Germania, Francia, Italia, Spagna, Paesi Bassi, Belgio, Portogallo e Finlandia per l'euro, oppure presi direttamente dai gilt per il Regno Unito. Sono i tassi che l'app blocca; la serie di rendimenti del <em>fondo</em> obbligazionario, dalla stessa fonte, serve solo alle tabelle storiche più sotto.</li>
       <li><strong>I pesi usano la dimensione dell'economia dell'anno <em>precedente</em></strong>, così il calcolo non usa mai informazioni che all'epoca non poteva avere.</li>
       <li>Rendimento reale per paese = (1 + rendimento totale del paese) ÷ (1 + inflazione del paese) − 1.</li>`,
   },
@@ -691,13 +691,30 @@ export const STRINGS = {
     it: 'Al netto dell\'inflazione, <span id="dsRange6">1900–2025</span>',
   },
   "data.col.shares": { it: "Azioni mondiali" },
-  "data.col.bonds": { it: "Obbligazioni governative in euro" },
+  // Two different bonds appear in two different tables, and confusing them was
+  // the whole reason the numbers used to look wrong: the stats table is the
+  // marked-to-market fund kept for context, the era table is the single bond the
+  // app actually buys and holds. They must not share a heading.
+  "data.col.bondFund": { it: "<em>Fondo</em> obbligazionario governativo in euro" },
+  "data.col.bondHeld": { it: "L'obbligazione in euro che tieni" },
+  "data.col.bondHeld.gbp": {
+    en: "The gilt you hold",
+    it: "Il gilt che tieni",
+  },
   "data.col.shares2": { it: "Azioni" },
   "data.col.bonds2": { it: "Obbligazioni" },
   "data.row.cagr": { it: "Crescita all'anno" },
   "data.row.vol": { it: "Oscillazione da un anno all'altro" },
   "data.row.best": { it: "Anno migliore" },
   "data.row.worst": { it: "Anno peggiore" },
+
+  "data.stats.note": {
+    it: `La colonna obbligazionaria è un <em>fondo</em> che compra e vende titoli ai
+      prezzi di mercato — per questo oscilla, e per questo su tutto il periodo ha
+      perso contro l'inflazione. L'app non simula quel fondo: compra un titolo al
+      tasso disponibile e lo tiene fino a scadenza, ed è la riga della tabella
+      dopo la prossima.`,
+  },
 
   "data.worst.title": { it: "I cinque anni peggiori mai registrati" },
   "data.worst.caption": {
@@ -706,11 +723,13 @@ export const STRINGS = {
   "data.worst.shareYear": { it: "Anno azioni" },
   "data.worst.bondYear": { it: "Anno obbligazioni" },
   "data.worst.note": {
-    it: `Due di quegli anni obbligazionari sono l'iperinflazione tedesca e il periodo
-      immediatamente dopo, che spazzarono via completamente gli obbligazionisti
-      interni. Non è un difetto statistico: è il motivo per cui il caso
-      obbligazionario “1 su 100” appare così cupo, e il motivo per cui nel riquadro
-      delle opzioni esiste la scelta dell'epoca.`,
+    it: `Quegli anni obbligazionari riguardano un <em>fondo</em> valutato ai prezzi di
+      mercato — due sono l'iperinflazione tedesca e il periodo dopo, che spazzarono
+      via completamente gli obbligazionisti interni. Questa app non simula un fondo:
+      compra una singola obbligazione e la tiene fino alla scadenza, quindi non
+      subisce mai questi cali di prezzo. I dati sono mostrati solo per farti vedere
+      perché un fondo è più movimentato della singola obbligazione che l'app usa
+      davvero.`,
   },
 
   "data.era.title": { it: "L'epoca su cui stai imparando adesso" },
@@ -720,6 +739,14 @@ export const STRINGS = {
   },
   "data.era.row.cagr": { it: "Crescita all'anno, al netto dell'inflazione" },
   "data.era.row.corr": { it: "Correlazione tra le due" },
+  "data.era.note": {
+    it: `Il valore obbligazionario è il rendimento reale che puoi bloccare <em>oggi</em>
+      e tenere fino alla scadenza — la cedola meno l'inflazione che assumi. Tenuta
+      fino alla scadenza non ha un prezzo di mercato che oscilla e non si muove con
+      le azioni, quindi il suo sbalzo annuo e la correlazione con le azioni sono
+      entrambi zero. Le scadenze più brevi comportano comunque un po' di rischio
+      perché devi reinvestire a tassi futuri ignoti.`,
+  },
 
   "data.weak.title": { it: "Debolezze dichiarate dei dati" },
   "data.weak.list": {
@@ -727,7 +754,8 @@ export const STRINGS = {
       <li><strong>Dati annuali, non giornalieri.</strong> Prima del <span id="dsSplice2">2020</span> abbiamo un solo numero per anno. Il dettaglio mese per mese è ricostruito statisticamente, non osservato.</li>
       <li><strong>Solo i paesi sopravvissuti come fonti di dati.</strong> Il dataset copre le economie avanzate che hanno tenuto i registri. I mercati chiusi o distrutti — la Russia nel 1917, la Cina nel 1949 — sono assenti, e questo fa apparire la storia un po' più gentile di quanto sia stata.</li>
       <li><strong>La giuntura nel <span id="dsSpliceFrom2">2021</span>.</strong> Sono cuciti insieme due tipi di misurazione diversi. Sono stati confrontati tra loro sugli anni in cui esistono entrambi, e vanno d'accordo da vicino, ma una giuntura è una giuntura.</li>
-      <li><strong>L'euro non esisteva per la maggior parte di questa storia.</strong> “Obbligazioni governative in euro” prima del 1999 significa i titoli dei paesi che poi hanno formato l'euro, nelle loro valute.</li>`,
+      <li><strong>L'euro non esisteva per la maggior parte di questa storia.</strong> “Euro” prima del 1999 significa i paesi che poi hanno formato l'euro — i loro titoli, i loro tassi d'interesse e la loro inflazione, ciascuno nella propria valuta.</li>
+      <li><strong>Il tasso d'interesse di oggi non è una previsione di quello di domani.</strong> L'obbligazione che compri adesso blocca un tasso noto; ogni obbligazione successiva è prezzata su un anno estratto dalla storia, che è un modo di dire “i tassi sono stati di ogni tipo” e non una previsione. E il modello non prezza mai il caso di un governo che non paga — raro, ma non impossibile.</li>`,
   },
   "data.check.title": { it: "Verifica tu stesso" },
   "data.check.p": {

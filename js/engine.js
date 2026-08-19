@@ -204,6 +204,23 @@ export function lockedYield(era, idx, M) {
   return era.yShort[idx] + frac * (era.yLong[idx] - era.yShort[idx]);
 }
 
+/**
+ * The yield a bond of maturity `M` locks if you buy it today — the last year on
+ * the curve. The tax model needs this too: held to maturity, the coupon the
+ * taxman charges you on *is* this number, so the page's assumed bond yield can
+ * follow the country and the maturity instead of sitting at a flat guess.
+ * Returns null for a dataset with no `bond_hold` block.
+ */
+export function currentYield(data, currency, M) {
+  const hold = data && data.bond_hold && data.bond_hold[currency];
+  if (!hold) return null;
+  return lockedYield(
+    { yShort: hold.yield_short, yLong: hold.yield_long },
+    hold.yield_short.length - 1,
+    M,
+  );
+}
+
 // --------------------------------------------------------------- simulation
 
 export const DEFAULTS = {
@@ -228,10 +245,13 @@ export const DEFAULTS = {
 };
 
 /** The bond's currency (and therefore which government issues it) follows the
- *  tax country: sterling gilts for the UK, euro government bonds otherwise. */
+ *  tax country: sterling gilts for the UK, euro government bonds otherwise.
+ *  An ISA resolves to the id "gb_isa" — it is a wrapper around the same UK
+ *  holdings, so it must match too, or sheltering the plan would silently swap
+ *  the gilt for a bund while the page still priced everything in pounds. */
 export function currencyOf(o, plan) {
   if (o.currency) return o.currency;
-  return plan && plan.id === "gb" ? "gbp" : "eur";
+  return plan && typeof plan.id === "string" && plan.id.startsWith("gb") ? "gbp" : "eur";
 }
 
 /**
@@ -339,6 +359,22 @@ export function simulate(data, optsIn = {}, onProgress) {
   const upliftGross = plan.basisUplift === "gross";
   const upliftNet = plan.basisUplift === "net";
 
+  // A single government bond held to maturity has fixed cash flows: its NOMINAL
+  // return is simply the coupon it was bought at. Its real return is that coupon
+  // eroded by inflation — and this model treats inflation as the one explicit,
+  // fixed assumption (o.inflation), exactly as the "future euros" view does. So
+  // the bond's real return is (1 + coupon) / (1 + inflation) - 1, deterministic
+  // given the yield you locked. It carries NO inflation *risk* here, because
+  // inflation is not resampled; the only uncertainty is the yield you can lock
+  // when you buy or roll (reinvestment risk on short maturities), and default,
+  // which neither Italy nor the UK has ever done on its own-currency debt and
+  // which the model does not attempt to price.
+  const invInfl = 1 / (1 + o.inflation);
+  // The first bond is bought TODAY, so it locks today's yield (the most recent
+  // year on the curve) with certainty. Later rolls land on a resampled future
+  // year, which is where reinvestment risk comes from.
+  const yieldToday = era.hasHold ? lockedYield(era, era.n - 1, bondM) : 0;
+
   for (let i = 0; i < nPaths; i++) {
     let risky = o.initialRisky;
     let safe = o.initialSafe;
@@ -373,7 +409,9 @@ export function simulate(data, optsIn = {}, onProgress) {
 
     // pick the first year of the bootstrap
     let idx = Math.floor(rng() * era.n);
-    let locked = lockedYield(era, idx, bondM); // yield fixed for the bond's life
+    // Yield fixed for the bond's life. The first bond is bought today, so it
+    // locks today's yield with certainty (synthetic fixtures fall back to idx).
+    let locked = era.hasHold ? yieldToday : lockedYield(era, idx, bondM);
 
     for (let y = 0; y < o.years; y++) {
       if (y > 0) {
@@ -381,16 +419,19 @@ export function simulate(data, optsIn = {}, onProgress) {
         if (rng() < pNewBlock) idx = Math.floor(rng() * era.n);
         else idx = (idx + 1) % era.n;
       }
-      // The bond matures every `bondM` years; buy the next one at the yield on
-      // offer in the year we happen to have landed on, and hold it again.
-      if (y % bondM === 0) locked = lockedYield(era, idx, bondM);
+      // The bond matures every `bondM` years; the roll after the first buys the
+      // next bond at whatever yield the resampled future year offers (this is
+      // the reinvestment risk that short maturities carry). The first bond, at
+      // y === 0, keeps the yield it was bought at today.
+      if (y > 0 && y % bondM === 0) locked = lockedYield(era, idx, bondM);
 
       const rEq = netOfCosts(era.equity[idx], o.terRisky);
       const logEq = Math.log1p(Math.max(-0.999999, rEq));
-      // Held to maturity there is no price swing: the year's real return is the
-      // locked coupon yield eroded by that year's inflation, spread smoothly
-      // across the twelve months.
-      const rBd = (1 + locked) * era.disc[idx] - 1;
+      // Held to maturity there is no price swing: the nominal return is exactly
+      // the locked coupon, so the real return is that coupon deflated by the
+      // fixed assumed inflation — spread smoothly across the twelve months.
+      const bondDeflator = era.hasHold ? invInfl : era.disc[idx];
+      const rBd = (1 + locked) * bondDeflator - 1;
       const logBd = Math.log1p(Math.max(-0.999999, rBd));
       const stepB = logBd / 12;
 
@@ -749,10 +790,14 @@ export function simulate(data, optsIn = {}, onProgress) {
       end: o.eraEnd,
       nYears: era.n,
       equityCagr: era.annualisedEq,
-      bondCagr: era.annualisedBond,
+      // The bond is held to maturity, so its real "growth per year" is the real
+      // yield you can lock today — the coupon less the assumed inflation — not a
+      // volatile historical series. There is no market price to bounce, so its
+      // year-to-year volatility and its correlation with equities are zero.
+      bondCagr: era.hasHold ? (1 + yieldToday) * invInfl - 1 : era.annualisedBond,
       equityVol: era.volEq,
-      bondVol: era.volBond,
-      correlation: era.correlation,
+      bondVol: era.hasHold ? 0 : era.volBond,
+      correlation: era.hasHold ? 0 : era.correlation,
     },
     bond: {
       currency,
@@ -790,6 +835,7 @@ export function historicalWindows(data, optsIn = {}) {
   const yBdM = taxOn ? plan.bondYield / 12 : 0;
   const upliftGross = plan.basisUplift === "gross";
   const upliftNet = plan.basisUplift === "net";
+  const invInfl = 1 / (1 + o.inflation); // held-to-maturity bond: see simulate()
 
   for (let s = 0; s + o.years <= era.n; s++) {
     let risky = o.initialRisky;
@@ -811,9 +857,12 @@ export function historicalWindows(data, optsIn = {}) {
     let locked = lockedYield(era, s, bondM);
     for (let y = 0; y < o.years; y++) {
       const idx = s + y;
-      if (y % bondM === 0) locked = lockedYield(era, idx, bondM);
+      if (y > 0 && y % bondM === 0) locked = lockedYield(era, idx, bondM);
       const rEq = netOfCosts(era.equity[idx], o.terRisky);
-      const rBd = (1 + locked) * era.disc[idx] - 1; // held to maturity: no price risk
+      // Held to maturity: nominal return is the locked coupon, so the real
+      // return is that coupon deflated by the fixed assumed inflation.
+      const bondDeflator = era.hasHold ? invInfl : era.disc[idx];
+      const rBd = (1 + locked) * bondDeflator - 1;
       const stepE = Math.pow(1 + Math.max(-0.999999, rEq), 1 / 12);
       const stepB = Math.pow(1 + Math.max(-0.999999, rBd), 1 / 12);
       for (let m = 0; m < 12; m++) {
